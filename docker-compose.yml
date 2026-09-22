@@ -72,6 +72,13 @@ services:
     ports:
       - "8025:8025"
 
+  # Interface web de la base de données (dev). Retirer ou protéger avant l'événement réel.
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
 volumes:
   db_data:
   minio_data:
