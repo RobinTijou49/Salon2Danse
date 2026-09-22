@@ -83,14 +83,11 @@ export class PlanningService {
     for (const g of grouped) takenBy.set(g.missionSlotId, g._count._all);
 
     const mine = await this.currentSlots(profile.id);
-    const myMissionSlotIds = new Set(
-      (
-        await this.prisma.booking.findMany({
-          where: { volunteerProfileId: profile.id },
-          select: { missionSlotId: true },
-        })
-      ).map((b) => b.missionSlotId),
-    );
+    const myBookings = await this.prisma.booking.findMany({
+      where: { volunteerProfileId: profile.id },
+      select: { id: true, missionSlotId: true },
+    });
+    const myBookingByMissionSlot = new Map(myBookings.map((b) => [b.missionSlotId, b.id]));
 
     const result = days.map((day) => ({
       id: day.id,
@@ -106,7 +103,8 @@ export class PlanningService {
           .map((ms) => {
             const taken = takenBy.get(ms.id) ?? 0;
             const remaining = Math.max(0, ms.capacity - taken);
-            const bookedByMe = myMissionSlotIds.has(ms.id);
+            const myBookingId = myBookingByMissionSlot.get(ms.id) ?? null;
+            const bookedByMe = myBookingId !== null;
             const candidate: SlotRef = {
               dayId: day.id,
               indexInDay: ts.indexInDay,
@@ -149,6 +147,7 @@ export class PlanningService {
               remaining,
               state,
               bookedByMe,
+              bookingId: myBookingId,
               reservable: !bookedByMe && remaining > 0 && rule.ok,
               reason,
             };

@@ -1,61 +1,58 @@
-import { useQuery } from '@tanstack/react-query';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useAuth } from './lib/auth';
+import { Spinner } from './components/ui';
+import { AppShell } from './components/AppShell';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { PlanningPage } from './pages/PlanningPage';
+import { RecapPage } from './pages/RecapPage';
+import { ReactNode } from 'react';
 
-type Health = { status: string; db: string; time: string };
-
-async function fetchHealth(): Promise<Health> {
-  const res = await fetch('/api/health');
-  if (!res.ok) throw new Error('API injoignable');
-  return res.json();
+function Protected({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Spinner label="Chargement…" />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <AppShell>{children}</AppShell>;
 }
 
 export default function App() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['health'],
-    queryFn: fetchHealth,
-    refetchInterval: 10000,
-  });
-
-  const dbUp = data?.db === 'up';
-
+  const { user, loading } = useAuth();
   return (
-    <div className="min-h-full bg-neutral-50 text-neutral-900 flex flex-col items-center justify-center gap-6 p-6">
-      <div className="max-w-md text-center">
-        <p className="text-xs font-mono uppercase tracking-widest text-salon">
-          Angers · 14–16 mai 2027
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Plateforme bénévoles
-        </h1>
-        <p className="mt-3 text-neutral-600">
-          Squelette déployé. Le socle technique tourne — les modules métier
-          (auth, planning, back-office) se branchent à partir d'ici.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span
-            className={
-              'inline-block h-2.5 w-2.5 rounded-full ' +
-              (isLoading ? 'bg-neutral-300' : dbUp ? 'bg-emerald-500' : 'bg-red-500')
-            }
-          />
-          <span className="text-sm font-medium">
-            {isLoading
-              ? 'Vérification de l\'API…'
-              : isError
-              ? 'API injoignable'
-              : dbUp
-              ? 'API + base de données opérationnelles'
-              : 'API en ligne, base de données indisponible'}
-          </span>
-        </div>
-        {data && (
-          <p className="mt-2 text-xs font-mono text-neutral-400">
-            {new Date(data.time).toLocaleTimeString('fr-FR')}
-          </p>
-        )}
-      </div>
-    </div>
+    <Routes>
+      <Route
+        path="/login"
+        element={loading ? <Spinner /> : user ? <Navigate to="/" replace /> : <LoginPage />}
+      />
+      <Route
+        path="/register"
+        element={loading ? <Spinner /> : user ? <Navigate to="/" replace /> : <RegisterPage />}
+      />
+      <Route
+        path="/"
+        element={
+          <Protected>
+            <DashboardPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/planning"
+        element={
+          <Protected>
+            <PlanningPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/recap"
+        element={
+          <Protected>
+            <RecapPage />
+          </Protected>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
