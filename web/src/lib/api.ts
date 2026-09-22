@@ -148,6 +148,91 @@ export const api = {
   verifyPhotoUrl: (token: string) => `${BASE}/badges/verify/${encodeURIComponent(token)}/photo`,
 };
 
+// ---- Admin ----
+export type AdminStats = {
+  totalVolunteers: number;
+  planningValidated: number;
+  planningDraft: number;
+  minorsPending: number;
+  fillRate: number;
+  capacityTotal: number;
+  takenTotal: number;
+  perDay: { label: string; capacity: number; taken: number; rate: number }[];
+  perMission: { name: string; capacity: number; taken: number; rate: number }[];
+  understaffed: { day: string; time: string; mission: string; capacity: number; taken: number; remaining: number }[];
+};
+export type AdminMeta = {
+  days: { id: string; label: string }[];
+  missions: { id: string; name: string; isPublic: boolean }[];
+};
+export type VolunteerRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  isMinor: boolean;
+  hasPhoto: boolean;
+  validationStatus: 'PENDING' | 'VALIDATED';
+  planningStatus: 'DRAFT' | 'VALIDATED';
+  bookingsCount: number;
+};
+export type VolunteerList = {
+  total: number;
+  page: number;
+  pages: number;
+  pageSize: number;
+  items: VolunteerRow[];
+};
+export type VolunteerDetail = VolunteerRow & {
+  userId: string;
+  bookings: {
+    bookingId: string;
+    mission: string;
+    isPublic: boolean;
+    day: string;
+    startTime: string;
+    endTime: string;
+  }[];
+};
+export type AuditEntry = {
+  id: string;
+  actor: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  createdAt: string;
+};
+
+function qs(params: Record<string, string | number | undefined>) {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') u.set(k, String(v));
+  const s = u.toString();
+  return s ? '?' + s : '';
+}
+
+export const admin = {
+  stats: () => req<AdminStats>('/admin/stats'),
+  meta: () => req<AdminMeta>('/admin/meta'),
+  volunteers: (p: Record<string, string | number | undefined>) =>
+    req<VolunteerList>('/admin/volunteers' + qs(p)),
+  detail: (id: string) => req<VolunteerDetail>('/admin/volunteers/' + id),
+  update: (id: string, dto: Record<string, unknown>) =>
+    req('/admin/volunteers/' + id, { method: 'PATCH', body: JSON.stringify(dto) }),
+  validate: (id: string) => req('/admin/volunteers/' + id + '/validate', { method: 'POST' }),
+  unlock: (id: string) => req('/admin/volunteers/' + id + '/unlock', { method: 'POST' }),
+  resetPassword: (id: string) =>
+    req<{ tempPassword: string }>('/admin/volunteers/' + id + '/reset-password', { method: 'POST' }),
+  removeBooking: (bid: string) => req('/admin/bookings/' + bid, { method: 'DELETE' }),
+  audit: () => req<AuditEntry[]>('/admin/audit'),
+  badgeUrl: (profileId: string) => `${BASE}/badges/volunteer/${profileId}`,
+  exports: {
+    volunteersCsv: `${BASE}/admin/export/volunteers.csv`,
+    planningCsv: `${BASE}/admin/export/planning.csv`,
+    xlsx: `${BASE}/admin/export/salon.xlsx`,
+  },
+};
+
 export type BadgeVerification =
   | { valid: false }
   | {
