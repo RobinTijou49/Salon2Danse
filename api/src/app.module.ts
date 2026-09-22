@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { PlanningModule } from './planning/planning.module';
+import { PhotosModule } from './photos/photos.module';
 
 // Au fur et à mesure, ajouter ici les modules métier :
 //   AdminModule, ExportsModule, BadgesModule
@@ -14,6 +15,7 @@ import { PlanningModule } from './planning/planning.module';
     HealthModule,
     AuthModule,
     PlanningModule,
+    PhotosModule,
   ],
 })
 export class AppModule {}

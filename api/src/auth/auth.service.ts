@@ -140,6 +140,7 @@ export class AuthService {
             lastName: user.profile.lastName,
             phone: user.profile.phone,
             isMinor: user.profile.isMinor,
+            hasPhoto: !!user.profile.photoKey,
             validationStatus: user.profile.validationStatus,
             planningStatus: user.profile.planningStatus,
           }

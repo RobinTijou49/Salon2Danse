@@ -132,7 +132,7 @@ export function RegisterPage() {
                 <p className="mt-1 text-xs text-muted">8 caractères minimum.</p>
               </div>
               <Banner tone="info">
-                📸 La photo obligatoire pour le badge sera à ajouter ensuite depuis ton profil.
+                📸 Juste après, on te demandera ta photo (obligatoire pour le badge).
               </Banner>
               <button type="submit" className="btn-primary btn-block" disabled={busy}>
                 {busy ? 'Création…' : 'Créer mon compte'}

@@ -43,6 +43,7 @@ export type Me = {
     lastName: string;
     phone: string;
     isMinor: boolean;
+    hasPhoto: boolean;
     validationStatus: 'PENDING' | 'VALIDATED';
     planningStatus: 'DRAFT' | 'VALIDATED';
   } | null;
@@ -122,4 +123,22 @@ export const api = {
     req('/planning/book', { method: 'POST', body: JSON.stringify({ missionSlotId }) }),
   unbook: (bookingId: string) => req('/planning/book/' + bookingId, { method: 'DELETE' }),
   validate: () => req<{ ok: boolean; validatedSlots: number }>('/planning/validate', { method: 'POST' }),
+  uploadPhoto: async (file: File) => {
+    const fd = new FormData();
+    fd.append('photo', file);
+    const send = () => fetch(BASE + '/photos/me', { method: 'POST', credentials: 'include', body: fd });
+    let res = await send();
+    if (res.status === 401) {
+      const r = await fetch(BASE + '/auth/refresh', { method: 'POST', credentials: 'include' });
+      if (r.ok) res = await send();
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = Array.isArray(data?.message) ? data.message.join(' · ') : data?.message;
+      throw new ApiError(res.status, msg || "Envoi de la photo impossible.");
+    }
+    return data;
+  },
+  // URL de la photo du bénévole connecté (avec anti-cache).
+  myPhotoUrl: (bust?: string | number) => `${BASE}/photos/me${bust ? `?v=${bust}` : ''}`,
 };

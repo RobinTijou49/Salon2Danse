@@ -7,12 +7,15 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { RecapPage } from './pages/RecapPage';
+import { PhotoGatePage } from './pages/PhotoGatePage';
 import { ReactNode } from 'react';
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner label="Chargement…" />;
   if (!user) return <Navigate to="/login" replace />;
+  // Photo obligatoire : tant qu'elle manque, on bloque l'accès à l'app.
+  if (user.profile && !user.profile.hasPhoto) return <PhotoGatePage />;
   return <AppShell>{children}</AppShell>;
 }
 
