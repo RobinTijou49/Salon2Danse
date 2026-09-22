@@ -68,8 +68,11 @@ export function RecapPage() {
           ))}
           </div>
 
+          <a href={api.myBadgeUrl()} target="_blank" rel="noopener" className="btn-primary btn-block">
+            🎫 Télécharger mon badge PDF
+          </a>
           <button onClick={() => window.print()} className="btn-ghost btn-block">
-            🖨️ Imprimer / enregistrer en PDF
+            🖨️ Imprimer / enregistrer le planning
           </button>
 
           {!validated && (

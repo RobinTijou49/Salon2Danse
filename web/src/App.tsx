@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { RecapPage } from './pages/RecapPage';
 import { PhotoGatePage } from './pages/PhotoGatePage';
+import { VerifyPage } from './pages/VerifyPage';
 import { ReactNode } from 'react';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -31,6 +32,8 @@ export default function App() {
         path="/register"
         element={loading ? <Spinner /> : user ? <Navigate to="/" replace /> : <RegisterPage />}
       />
+      {/* Vérification publique d'un badge (scan du QR) */}
+      <Route path="/verify/:token" element={<VerifyPage />} />
       <Route
         path="/"
         element={

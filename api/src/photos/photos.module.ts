@@ -7,5 +7,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule], // AuthGuard
   controllers: [PhotosController],
   providers: [PhotosService],
+  exports: [PhotosService], // réutilisé par le module badges
 })
 export class PhotosModule {}

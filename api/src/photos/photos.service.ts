@@ -88,6 +88,12 @@ export class PhotosService implements OnModuleInit {
     return { ok: true };
   }
 
+  /** Récupère l'objet stocké sous une clé (pour le badge). */
+  async getObjectBuffer(key: string): Promise<Buffer> {
+    const obj = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    return Buffer.from(await (obj.Body as any).transformToByteArray());
+  }
+
   /** Diffuse la photo du bénévole connecté. */
   async streamOwn(userId: string, res: Response) {
     const profile = await this.prisma.volunteerProfile.findUnique({ where: { userId } });

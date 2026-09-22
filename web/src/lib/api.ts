@@ -141,4 +141,28 @@ export const api = {
   },
   // URL de la photo du bénévole connecté (avec anti-cache).
   myPhotoUrl: (bust?: string | number) => `${BASE}/photos/me${bust ? `?v=${bust}` : ''}`,
+  // URL de téléchargement du badge (GET avec cookie).
+  myBadgeUrl: () => `${BASE}/badges/me`,
+  verifyBadge: (token: string) =>
+    req<BadgeVerification>('/badges/verify/' + encodeURIComponent(token)),
+  verifyPhotoUrl: (token: string) => `${BASE}/badges/verify/${encodeURIComponent(token)}/photo`,
 };
+
+export type BadgeVerification =
+  | { valid: false }
+  | {
+      valid: true;
+      firstName: string;
+      lastName: string;
+      role: string;
+      hasPhoto: boolean;
+      planningValidated: boolean;
+      missions: {
+        day: string;
+        date: string;
+        indexInDay: number;
+        startTime: string;
+        endTime: string;
+        mission: string;
+      }[];
+    };

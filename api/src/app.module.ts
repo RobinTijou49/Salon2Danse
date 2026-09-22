@@ -5,9 +5,10 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { PlanningModule } from './planning/planning.module';
 import { PhotosModule } from './photos/photos.module';
+import { BadgesModule } from './badges/badges.module';
 
 // Au fur et à mesure, ajouter ici les modules métier :
-//   AdminModule, ExportsModule, BadgesModule
+//   AdminModule, ExportsModule
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -16,6 +17,7 @@ import { PhotosModule } from './photos/photos.module';
     AuthModule,
     PlanningModule,
     PhotosModule,
+    BadgesModule,
   ],
 })
 export class AppModule {}
