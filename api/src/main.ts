@@ -11,8 +11,9 @@ async function bootstrap() {
   // Toutes les routes sont préfixées par /api (Caddy proxifie /api → ici)
   app.setGlobalPrefix('api');
 
-  // Sécurité de base
-  app.use(helmet());
+  // Sécurité de base. CSP désactivée ici car elle bloque l'UI Swagger ;
+  // la CSP du site public est posée au niveau de Caddy (reverse proxy).
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
   app.enableCors({ origin: true, credentials: true });
 
