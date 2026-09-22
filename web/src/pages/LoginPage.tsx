@@ -34,10 +34,10 @@ export function LoginPage() {
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-2xl">
-          💃
+        <div className="rounded-2xl bg-brand px-6 py-5 shadow-card">
+          <Logo className="h-16 w-auto" />
         </div>
-        <Logo />
+        <p className="eyebrow">Espace bénévoles · Angers</p>
       </div>
 
       <div className="card p-6">

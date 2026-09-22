@@ -61,8 +61,11 @@ export function RegisterPage() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col justify-center px-5 py-10">
-      <div className="mb-6 flex justify-center">
-        <Logo />
+      <div className="mb-6 flex flex-col items-center gap-2">
+        <div className="rounded-2xl bg-brand px-5 py-4 shadow-card">
+          <Logo className="h-12 w-auto" />
+        </div>
+        <p className="eyebrow">Espace bénévoles · Angers</p>
       </div>
 
       <div className="card p-6">
