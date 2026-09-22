@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# builds
+dist/
+build/
+web/dist/
+
+# env & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# prisma
+api/prisma/*.db
+
+# logs
+*.log
+npm-debug.log*
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

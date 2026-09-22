@@ -1,0 +1,49 @@
+name: CI / Déploiement
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build de contrôle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: API — install & build
+        working-directory: api
+        run: |
+          npm install
+          npx prisma generate
+          npm run build
+
+      - name: Web — install & build
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+
+  deploy:
+    name: Déploiement sur le VPS
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH — pull & up
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ${{ secrets.APP_DIR }}
+            git pull origin main
+            docker compose up -d --build
+            docker image prune -f

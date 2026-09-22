@@ -1,0 +1,16 @@
+# Caddy sert le front et proxifie l'API. HTTPS automatique quand DOMAIN
+# est un vrai domaine ; certificat local auto-signé sur "localhost" ;
+# HTTP simple si DOMAIN=:80.
+{$DOMAIN:localhost} {
+	encode gzip
+
+	# Tout ce qui commence par /api part vers l'API NestJS
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Le reste = le front React (SPA)
+	handle {
+		reverse_proxy web:80
+	}
+}

@@ -1,0 +1,204 @@
+// Schéma de données — Plateforme bénévoles Salon de la Danse
+// 10 tables métier. La contrainte @@unique([volunteerProfileId, timeSlotId])
+// sur Booking interdit MÉCANIQUEMENT deux missions sur le même créneau,
+// même en cas de bug applicatif — c'est la garantie exigée par le cahier
+// des charges, posée au niveau de la base.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VOLUNTEER
+  ADMIN
+}
+
+enum InvitationStatus {
+  AVAILABLE
+  CONSUMED
+  REVOKED
+}
+
+enum ValidationStatus {
+  PENDING
+  VALIDATED
+}
+
+enum PlanningStatus {
+  DRAFT
+  VALIDATED
+}
+
+enum BookingStatus {
+  DRAFT
+  VALIDATED
+}
+
+// 1 — Édition du Salon (multi-éditions dès le départ)
+model Edition {
+  id                   String    @id @default(cuid())
+  name                 String
+  startDate            DateTime
+  endDate              DateTime
+  registrationOpensAt  DateTime?
+  registrationClosesAt DateTime?
+  isLocked             Boolean   @default(false) // verrou manuel admin
+  minSlots             Int       @default(1)
+  maxSlots             Int       @default(3)
+  orangeThresholdPct   Int       @default(25) // seuil "presque complet"
+  createdAt            DateTime  @default(now())
+
+  invitationCodes InvitationCode[]
+  profiles        VolunteerProfile[]
+  missions        Mission[]
+  days            Day[]
+}
+
+// 2 — Code d'invitation (stocké HACHÉ, usage unique)
+model InvitationCode {
+  id           String            @id @default(cuid())
+  edition      Edition           @relation(fields: [editionId], references: [id])
+  editionId    String
+  codeHash     String            @unique
+  status       InvitationStatus  @default(AVAILABLE)
+  consumedBy   VolunteerProfile? @relation(fields: [consumedById], references: [id])
+  consumedById String?           @unique
+  createdAt    DateTime          @default(now())
+  consumedAt   DateTime?
+
+  @@index([editionId])
+}
+
+// 3 — Compte utilisateur (bénévole ou admin)
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique // stocké en minuscules
+  passwordHash String
+  role         Role    @default(VOLUNTEER)
+  createdAt    DateTime @default(now())
+
+  profile   VolunteerProfile?
+  auditLogs AuditLog[]
+}
+
+// 4 — Profil bénévole (données perso verrouillées après inscription)
+model VolunteerProfile {
+  id                  String           @id @default(cuid())
+  user                User             @relation(fields: [userId], references: [id])
+  userId              String           @unique
+  edition             Edition          @relation(fields: [editionId], references: [id])
+  editionId           String
+  firstName           String
+  lastName            String
+  phone               String
+  photoKey            String? // clé de l'objet dans MinIO/S3
+  isMinor             Boolean          @default(false)
+  validationStatus    ValidationStatus @default(PENDING)
+  planningStatus      PlanningStatus   @default(DRAFT)
+  planningValidatedAt DateTime?
+  createdAt           DateTime         @default(now())
+
+  bookings       Booking[]
+  invitationCode InvitationCode?
+
+  @@index([editionId])
+}
+
+// 5 — Mission (publique ou sensible/hors-planning)
+model Mission {
+  id              String  @id @default(cuid())
+  edition         Edition @relation(fields: [editionId], references: [id])
+  editionId       String
+  name            String
+  isPublic        Boolean @default(true) // false = billetterie, caisse (attribution admin)
+  defaultCapacity Int     @default(4)
+  location        String?
+  instructions    String?
+
+  missionSlots MissionSlot[]
+
+  @@index([editionId])
+}
+
+// 6 — Jour d'événement
+model Day {
+  id        String   @id @default(cuid())
+  edition   Edition  @relation(fields: [editionId], references: [id])
+  editionId String
+  date      DateTime
+  label     String
+
+  timeSlots TimeSlot[]
+
+  @@index([editionId])
+}
+
+// 7 — Tranche horaire (5 par jour)
+model TimeSlot {
+  id         String @id @default(cuid())
+  day        Day    @relation(fields: [dayId], references: [id])
+  dayId      String
+  indexInDay Int // 0..4, sert à détecter les créneaux consécutifs
+  startTime  String // "08:30"
+  endTime    String // "10:00"
+
+  missionSlots MissionSlot[]
+  bookings     Booking[]
+
+  @@unique([dayId, indexInDay])
+  @@index([dayId])
+}
+
+// 8 — Créneau réservable = mission × tranche horaire, avec sa jauge
+model MissionSlot {
+  id         String   @id @default(cuid())
+  mission    Mission  @relation(fields: [missionId], references: [id])
+  missionId  String
+  timeSlot   TimeSlot @relation(fields: [timeSlotId], references: [id])
+  timeSlotId String
+  capacity   Int
+
+  bookings Booking[]
+
+  @@unique([missionId, timeSlotId])
+  @@index([timeSlotId])
+}
+
+// 9 — Réservation d'un bénévole sur un créneau
+model Booking {
+  id                 String           @id @default(cuid())
+  volunteerProfile   VolunteerProfile @relation(fields: [volunteerProfileId], references: [id])
+  volunteerProfileId String
+  missionSlot        MissionSlot      @relation(fields: [missionSlotId], references: [id])
+  missionSlotId      String
+  timeSlot           TimeSlot         @relation(fields: [timeSlotId], references: [id])
+  timeSlotId         String // dénormalisé exprès pour la contrainte ci-dessous
+  status             BookingStatus    @default(DRAFT)
+  createdAt          DateTime         @default(now())
+
+  // Interdit deux missions sur le même créneau (garantie base de données)
+  @@unique([volunteerProfileId, timeSlotId])
+  // Interdit un doublon exact sur le même créneau réservable
+  @@unique([volunteerProfileId, missionSlotId])
+  @@index([missionSlotId])
+}
+
+// 10 — Journal d'audit (traçabilité des actions admin)
+model AuditLog {
+  id          String   @id @default(cuid())
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
