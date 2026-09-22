@@ -8,7 +8,7 @@ Monorepo : une API NestJS, un front React, une base PostgreSQL, le tout déploya
 
 | Couche | Techno |
 |---|---|
-| API | NestJS + TypeScript, Prisma, PostgreSQL 17 |
+| API | NestJS + TypeScript, Prisma, MariaDB 11 |
 | Front | React 19 + Vite + TypeScript, Tailwind, TanStack Query |
 | Auth | argon2 (mots de passe) + JWT (cookie HttpOnly) |
 | Fichiers | MinIO (S3), redimensionnement `sharp` |

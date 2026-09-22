@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://salon:${POSTGRES_PASSWORD:-salon}@db:5432/salon?schema=public
+      DATABASE_URL: mysql://salon:${DB_PASSWORD:-salon}@db:3306/salon
       JWT_SECRET: ${JWT_SECRET:-change-me}
       QR_SIGNING_SECRET: ${QR_SIGNING_SECRET:-change-me}
       S3_ENDPOINT: http://minio:9000
@@ -40,16 +40,17 @@ services:
       - api
 
   db:
-    image: postgres:17-alpine
+    image: mariadb:11
     restart: unless-stopped
     environment:
-      POSTGRES_USER: salon
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-salon}
-      POSTGRES_DB: salon
+      MARIADB_DATABASE: salon
+      MARIADB_USER: salon
+      MARIADB_PASSWORD: ${DB_PASSWORD:-salon}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsalon}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U salon"]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
       timeout: 5s
       retries: 10
