@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: mysql://salon:${DB_PASSWORD:-salon}@db:3306/salon
+      DATABASE_URL: mysql://${DB_USER:-salon}:${DB_PASSWORD:-salon}@db:3306/${DB_NAME:-salon}
       JWT_SECRET: ${JWT_SECRET:-change-me}
       QR_SIGNING_SECRET: ${QR_SIGNING_SECRET:-change-me}
       S3_ENDPOINT: http://minio:9000
@@ -43,8 +43,8 @@ services:
     image: mariadb:11
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: salon
-      MARIADB_USER: salon
+      MARIADB_DATABASE: ${DB_NAME:-salon}
+      MARIADB_USER: ${DB_USER:-salon}
       MARIADB_PASSWORD: ${DB_PASSWORD:-salon}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsalon}
     volumes:
