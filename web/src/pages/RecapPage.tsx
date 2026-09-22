@@ -44,6 +44,7 @@ export function RecapPage() {
         </Banner>
       ) : (
         <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {byDay.map(([day, items]) => (
             <div key={day} className="card overflow-hidden">
               <div className="border-b border-line bg-brand-50 px-4 py-2.5">
@@ -65,6 +66,7 @@ export function RecapPage() {
               </ul>
             </div>
           ))}
+          </div>
 
           <button onClick={() => window.print()} className="btn-ghost btn-block">
             🖨️ Imprimer / enregistrer en PDF

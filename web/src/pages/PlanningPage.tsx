@@ -97,14 +97,14 @@ export function PlanningPage() {
       )}
 
       {/* Onglets jour */}
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap">
         {data.days.map((d, i) => {
           const [weekday, ...rest] = d.label.split(' ');
           return (
             <button
               key={d.id}
               onClick={() => setDayIdx(i)}
-              className={`rounded-xl border px-2 py-2.5 text-center transition ${
+              className={`rounded-xl border px-2 py-2.5 text-center transition md:px-8 ${
                 i === dayIdx
                   ? 'border-brand bg-brand text-white'
                   : 'border-line bg-white text-ink'
@@ -127,7 +127,7 @@ export function PlanningPage() {
               <span className="font-display">{slot.startTime} – {slot.endTime}</span>
               <span className="h-px flex-1 bg-line" />
             </h2>
-            <div className="space-y-2.5">
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {slot.missions.map((m) => (
                 <MissionRow
                   key={m.missionSlotId}

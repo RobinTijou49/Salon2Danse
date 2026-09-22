@@ -68,22 +68,25 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      {/* Règles d'engagement */}
-      <div className="card p-5">
-        <h2 className="text-base font-bold text-ink">Les règles en bref</h2>
-        <ul className="mt-3 space-y-2.5 text-sm text-ink">
-          <Rule>📅 3 jours : vendredi 14, samedi 15, dimanche 16 mai 2027</Rule>
-          <Rule>⏱️ Créneaux de 2 h · entre {edition.minSlots} et {edition.maxSlots} au total</Rule>
-          <Rule>🚫 Pas 2 missions sur le même créneau, ni 3 créneaux d'affilée</Rule>
-          <Rule>✅ Une fois validé, ton planning est verrouillé (l'orga peut le rouvrir)</Rule>
-        </ul>
-      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Règles d'engagement */}
+        <div className="card p-5">
+          <h2 className="text-base font-bold text-ink">Les règles en bref</h2>
+          <ul className="mt-3 space-y-2.5 text-sm text-ink">
+            <Rule>📅 3 jours : vendredi 14, samedi 15, dimanche 16 mai 2027</Rule>
+            <Rule>⏱️ Créneaux de 2 h · entre {edition.minSlots} et {edition.maxSlots} au total</Rule>
+            <Rule>🚫 Pas 2 missions sur le même créneau, ni 3 créneaux d'affilée</Rule>
+            <Rule>✅ Une fois validé, ton planning est verrouillé (l'orga peut le rouvrir)</Rule>
+          </ul>
+        </div>
 
-      <div className="card p-5">
-        <h2 className="text-base font-bold text-ink">Une question ?</h2>
-        <p className="mt-1 text-sm text-muted">
-          Contacte l'équipe bénévoles : <span className="text-brand font-semibold">benevoles@salondeladanse.fr</span>
-        </p>
+        <div className="card p-5">
+          <h2 className="text-base font-bold text-ink">Une question ?</h2>
+          <p className="mt-1 text-sm text-muted">
+            Contacte l'équipe bénévoles :{' '}
+            <span className="text-brand font-semibold">benevoles@salondeladanse.fr</span>
+          </p>
+        </div>
       </div>
     </div>
   );
