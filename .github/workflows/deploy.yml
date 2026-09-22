@@ -17,12 +17,13 @@ jobs:
         with:
           node-version: "22"
 
-      - name: API — install & build
+      - name: API — install, build & test
         working-directory: api
         run: |
           npm install
           npx prisma generate
           npm run build
+          npm test
 
       - name: Web — install & build
         working-directory: web

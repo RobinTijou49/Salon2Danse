@@ -63,8 +63,10 @@ async function main() {
       name: 'Salon de la Danse — Angers 2027',
       startDate: new Date('2027-05-14'),
       endDate: new Date('2027-05-16'),
-      registrationOpensAt: new Date('2027-03-01'),
-      registrationClosesAt: new Date('2027-05-01'),
+      // Fenêtre ouverte pendant le développement (englobe aujourd'hui) ;
+      // l'admin la resserrera pour l'édition réelle.
+      registrationOpensAt: new Date('2026-06-01'),
+      registrationClosesAt: new Date('2027-05-13'),
       minSlots: 1,
       maxSlots: 3,
       orangeThresholdPct: 25,
