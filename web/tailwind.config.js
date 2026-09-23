@@ -12,7 +12,7 @@ export default {
           50: '#F7ECE9',
         },
         accent: '#2EA3F2', // bleu secondaire
-        paper: '#FBF9F8', // fond blanc cassé chaud
+        paper: '#FCF2F0', // fond rosé très clair (maquettes Stitch)
         ink: '#2A2724',
         muted: '#6B6560',
         line: '#EAE3DF',

@@ -53,6 +53,7 @@ export function LoginPage() {
               type="email"
               autoComplete="email"
               className="field"
+              placeholder="ex. robin.tijou@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -86,6 +87,9 @@ export function LoginPage() {
         <Link to="/register" className="font-semibold text-brand">
           Crée ton compte
         </Link>
+      </p>
+      <p className="mt-6 text-center text-xs text-muted">
+        Salon de la Danse Angers 2027 · Centre de Congrès · Édition officielle
       </p>
     </div>
   );
