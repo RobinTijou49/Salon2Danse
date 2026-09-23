@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '../components/Logo';
+import { Select } from '../components/Select';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { AdminEditionProvider, useEdition } from './editionContext';
@@ -62,18 +63,15 @@ function EditionSelect() {
   const { editionId, setEditionId, editions } = useEdition();
   if (editions.length <= 1) return null;
   return (
-    <select
+    <Select
+      tone="brand"
       value={editionId ?? ''}
-      onChange={(e) => setEditionId(e.target.value)}
-      className="select-light rounded-lg bg-white/15 px-2 py-1.5 text-xs font-semibold text-white outline-none"
-      title="Édition affichée"
-    >
-      {editions.map((e) => (
-        <option key={e.id} value={e.id} className="text-ink">
-          {e.name}{e.isArchived ? ' (archivée)' : ''}
-        </option>
-      ))}
-    </select>
+      onChange={setEditionId}
+      options={editions.map((e) => ({
+        value: e.id,
+        label: e.name + (e.isArchived ? ' (archivée)' : ''),
+      }))}
+    />
   );
 }
 

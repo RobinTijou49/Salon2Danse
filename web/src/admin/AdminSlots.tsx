@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { admin, ApiError, SlotRow } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
+import { Select } from '../components/Select';
 import { useEdition } from './editionContext';
 
 export function AdminSlots() {
@@ -63,18 +64,21 @@ export function AdminSlots() {
 
       {/* Création */}
       <form onSubmit={submit} className="card grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto]">
-        <select className="select" value={missionId} onChange={(e) => setMissionId(e.target.value)} required>
-          <option value="">Mission…</option>
-          {meta.data?.missions.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}{m.isPublic ? '' : ' (sensible)'}</option>
-          ))}
-        </select>
-        <select className="select" value={timeSlotId} onChange={(e) => setTimeSlotId(e.target.value)} required>
-          <option value="">Créneau horaire…</option>
-          {meta.data?.timeSlots.map((t) => (
-            <option key={t.id} value={t.id}>{t.label}</option>
-          ))}
-        </select>
+        <Select
+          value={missionId}
+          onChange={setMissionId}
+          placeholder="Mission…"
+          options={(meta.data?.missions ?? []).map((m) => ({
+            value: m.id,
+            label: m.name + (m.isPublic ? '' : ' (sensible)'),
+          }))}
+        />
+        <Select
+          value={timeSlotId}
+          onChange={setTimeSlotId}
+          placeholder="Créneau horaire…"
+          options={(meta.data?.timeSlots ?? []).map((t) => ({ value: t.id, label: t.label }))}
+        />
         <input
           type="number"
           min={0}

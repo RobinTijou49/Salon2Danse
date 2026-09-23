@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { admin, ApiError, VolunteerRow } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
+import { Select } from '../components/Select';
 import { useEdition } from './editionContext';
 
 export function AdminVolunteers() {
@@ -42,30 +43,51 @@ export function AdminVolunteers() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
-          <select className="select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-            <option value="">Validation : toutes</option>
-            <option value="PENDING">En attente</option>
-            <option value="VALIDATED">Validé</option>
-          </select>
-          <select className="select" value={planning} onChange={(e) => { setPlanning(e.target.value); setPage(1); }}>
-            <option value="">Planning : tous</option>
-            <option value="DRAFT">Brouillon</option>
-            <option value="VALIDATED">Validé</option>
-          </select>
-          <select className="select" value={dayId} onChange={(e) => { setDayId(e.target.value); setPage(1); }}>
-            <option value="">Jour : tous</option>
-            {meta.data?.days.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
-          </select>
-          <select className="select" value={missionId} onChange={(e) => { setMissionId(e.target.value); setPage(1); }}>
-            <option value="">Mission : toutes</option>
-            {meta.data?.missions.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}{m.isPublic ? '' : ' (sensible)'}</option>
-            ))}
-          </select>
-          <select className="select" value={minor} onChange={(e) => { setMinor(e.target.value); setPage(1); }}>
-            <option value="">Tous les âges</option>
-            <option value="true">Mineurs uniquement</option>
-          </select>
+          <Select
+            value={status}
+            onChange={(v) => { setStatus(v); setPage(1); }}
+            options={[
+              { value: '', label: 'Validation : toutes' },
+              { value: 'PENDING', label: 'En attente' },
+              { value: 'VALIDATED', label: 'Validé' },
+            ]}
+          />
+          <Select
+            value={planning}
+            onChange={(v) => { setPlanning(v); setPage(1); }}
+            options={[
+              { value: '', label: 'Planning : tous' },
+              { value: 'DRAFT', label: 'Brouillon' },
+              { value: 'VALIDATED', label: 'Validé' },
+            ]}
+          />
+          <Select
+            value={dayId}
+            onChange={(v) => { setDayId(v); setPage(1); }}
+            options={[
+              { value: '', label: 'Jour : tous' },
+              ...(meta.data?.days.map((d) => ({ value: d.id, label: d.label })) ?? []),
+            ]}
+          />
+          <Select
+            value={missionId}
+            onChange={(v) => { setMissionId(v); setPage(1); }}
+            options={[
+              { value: '', label: 'Mission : toutes' },
+              ...(meta.data?.missions.map((m) => ({
+                value: m.id,
+                label: m.name + (m.isPublic ? '' : ' (sensible)'),
+              })) ?? []),
+            ]}
+          />
+          <Select
+            value={minor}
+            onChange={(v) => { setMinor(v); setPage(1); }}
+            options={[
+              { value: '', label: 'Tous les âges' },
+              { value: 'true', label: 'Mineurs uniquement' },
+            ]}
+          />
           <button className="btn-ghost" onClick={reset}>Réinitialiser</button>
         </div>
       </div>
