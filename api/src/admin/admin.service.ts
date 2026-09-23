@@ -456,6 +456,32 @@ export class AdminService {
     return { ok: true };
   }
 
+  /** Génère des codes d'invitation en lot. Le clair n'est renvoyé qu'ICI,
+   * une seule fois (la base ne stocke que le haché). */
+  async generateCodes(actor: string, editionId: string, countRaw: number) {
+    const count = Math.min(Math.max(1, Math.floor(countRaw) || 0), 500);
+    const codes: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const code = randomBytes(4).toString('hex').toUpperCase();
+      codes.push(code);
+      await this.prisma.invitationCode.create({
+        data: { editionId, codeHash: createHash('sha256').update(code).digest('hex') },
+      });
+    }
+    await this.audit(actor, 'GENERATE_CODES', 'Edition', editionId, null, { count });
+    return { codes };
+  }
+
+  /** Suivi d'utilisation des codes d'une édition. */
+  async codeStats(editionId: string) {
+    const [available, consumed, revoked] = await Promise.all([
+      this.prisma.invitationCode.count({ where: { editionId, status: 'AVAILABLE' } }),
+      this.prisma.invitationCode.count({ where: { editionId, status: 'CONSUMED' } }),
+      this.prisma.invitationCode.count({ where: { editionId, status: 'REVOKED' } }),
+    ]);
+    return { available, consumed, revoked, total: available + consumed + revoked };
+  }
+
   /** Envoie le rappel J-3 aux bénévoles au planning validé. */
   async sendReminders(actor: string, editionIdParam?: string) {
     const editionId = await this.currentEditionId(editionIdParam);

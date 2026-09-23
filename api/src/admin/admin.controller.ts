@@ -58,6 +58,18 @@ export class AdminController {
     return this.admin.setArchived(u.sub, id, false);
   }
 
+  @Post('editions/:id/codes')
+  @ApiOperation({ summary: "Générer des codes d'invitation en lot (clair renvoyé une fois)" })
+  generateCodes(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: { count: number }) {
+    return this.admin.generateCodes(u.sub, id, dto.count);
+  }
+
+  @Get('editions/:id/codes/stats')
+  @ApiOperation({ summary: "Suivi d'utilisation des codes d'une édition" })
+  codeStats(@Param('id') id: string) {
+    return this.admin.codeStats(id);
+  }
+
   @Post('emails/reminders')
   @ApiOperation({ summary: 'Envoyer les rappels J-3 (plannings validés)' })
   reminders(@CurrentUser() u: AuthUser, @Query('editionId') editionId?: string) {

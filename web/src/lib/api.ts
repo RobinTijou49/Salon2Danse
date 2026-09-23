@@ -239,6 +239,15 @@ export const admin = {
     }),
   archiveEdition: (id: string, archived: boolean) =>
     req(`/admin/editions/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' }),
+  generateCodes: (id: string, count: number) =>
+    req<{ codes: string[] }>(`/admin/editions/${id}/codes`, {
+      method: 'POST',
+      body: JSON.stringify({ count }),
+    }),
+  codeStats: (id: string) =>
+    req<{ available: number; consumed: number; revoked: number; total: number }>(
+      `/admin/editions/${id}/codes/stats`,
+    ),
   sendReminders: (editionId?: string) =>
     req<{ sent: number }>('/admin/emails/reminders' + (editionId ? '?editionId=' + editionId : ''), {
       method: 'POST',

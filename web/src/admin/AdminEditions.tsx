@@ -3,6 +3,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { admin } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
 
+function downloadCodes(editionName: string, codes: string[]) {
+  const csv = '﻿Code\r\n' + codes.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `codes-${editionName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AdminEditions() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'editions'], queryFn: admin.editions });
@@ -55,6 +66,8 @@ export function AdminEditions() {
             >
               {e.isArchived ? 'Réactiver' : 'Archiver (lecture seule)'}
             </button>
+
+            <CodesPanel editionId={e.id} editionName={e.name} />
           </div>
         ))}
       </div>
@@ -94,6 +107,74 @@ export function AdminEditions() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CodesPanel({ editionId, editionName }: { editionId: string; editionName: string }) {
+  const qc = useQueryClient();
+  const stats = useQuery({
+    queryKey: ['admin', 'codeStats', editionId],
+    queryFn: () => admin.codeStats(editionId),
+  });
+  const [count, setCount] = useState(10);
+  const [codes, setCodes] = useState<string[] | null>(null);
+
+  const gen = useMutation({
+    mutationFn: () => admin.generateCodes(editionId, count),
+    onSuccess: (r) => {
+      setCodes(r.codes);
+      qc.invalidateQueries({ queryKey: ['admin', 'codeStats', editionId] });
+      qc.invalidateQueries({ queryKey: ['admin', 'editions'] });
+    },
+  });
+
+  return (
+    <div className="mt-4 border-t border-line pt-3">
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span>Codes d'invitation</span>
+        {stats.data && (
+          <span className="tabular-nums">
+            <b className="text-ok">{stats.data.available}</b> libres ·{' '}
+            {stats.data.consumed} utilisés
+          </span>
+        )}
+      </div>
+
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          max={500}
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value))}
+          className="field w-20 py-1.5 text-sm"
+        />
+        <button
+          className="btn-primary flex-1 py-1.5 text-sm"
+          disabled={gen.isPending}
+          onClick={() => gen.mutate()}
+        >
+          {gen.isPending ? '…' : 'Générer'}
+        </button>
+      </div>
+
+      {codes && (
+        <div className="mt-3 rounded-lg bg-warnbg p-2.5">
+          <p className="text-[11px] font-semibold text-warn">
+            {codes.length} codes — visibles une seule fois, exporte-les maintenant.
+          </p>
+          <p className="mt-1 max-h-24 overflow-y-auto break-all font-mono text-[11px] text-ink">
+            {codes.join('  ·  ')}
+          </p>
+          <button
+            className="btn-ghost mt-2 w-full py-1.5 text-xs"
+            onClick={() => downloadCodes(editionName, codes)}
+          >
+            ⬇ Télécharger en CSV
+          </button>
+        </div>
+      )}
     </div>
   );
 }
