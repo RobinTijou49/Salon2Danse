@@ -28,12 +28,14 @@ function Protected({ children }: { children: ReactNode }) {
   return <AppShell>{children}</AppShell>;
 }
 
-function ProtectedAdmin({ children }: { children: ReactNode }) {
+// Layout admin : monté une seule fois pour toutes les pages admin, ce qui
+// fait persister le sélecteur d'édition d'une page à l'autre.
+function AdminGate() {
   const { user, loading } = useAuth();
   if (loading) return <Spinner label="Chargement…" />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'ADMIN') return <Navigate to="/" replace />;
-  return <AdminShell>{children}</AdminShell>;
+  return <AdminShell />;
 }
 
 export default function App() {
@@ -61,11 +63,13 @@ export default function App() {
       <Route path="/planning" element={<Protected><PlanningPage /></Protected>} />
       <Route path="/recap" element={<Protected><RecapPage /></Protected>} />
 
-      {/* Espace administrateur */}
-      <Route path="/admin" element={<ProtectedAdmin><AdminDashboard /></ProtectedAdmin>} />
-      <Route path="/admin/volunteers" element={<ProtectedAdmin><AdminVolunteers /></ProtectedAdmin>} />
-      <Route path="/admin/editions" element={<ProtectedAdmin><AdminEditions /></ProtectedAdmin>} />
-      <Route path="/admin/audit" element={<ProtectedAdmin><AdminAudit /></ProtectedAdmin>} />
+      {/* Espace administrateur (layout partagé) */}
+      <Route element={<AdminGate />}>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/volunteers" element={<AdminVolunteers />} />
+        <Route path="/admin/editions" element={<AdminEditions />} />
+        <Route path="/admin/audit" element={<AdminAudit />} />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

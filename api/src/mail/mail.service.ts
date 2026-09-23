@@ -7,12 +7,18 @@ const BRAND = '#7A291E';
 
 @Injectable()
 export class MailService {
+  // Sans SMTP_USER : envoi vers Mailpit (dev). Avec SMTP_USER/SMTP_PASS et
+  // un vrai host : envoi réel (Gmail, SendGrid, Mailgun…).
   private readonly transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'mailpit',
     port: Number(process.env.SMTP_PORT || 1025),
-    secure: false,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: process.env.SMTP_USER
+      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      : undefined,
   });
-  private readonly from = 'Salon de la Danse <benevoles@salondeladanse.fr>';
+  private readonly from =
+    process.env.MAIL_FROM || 'Salon de la Danse <benevoles@salondeladanse.fr>';
 
   // Envoi non bloquant : une erreur d'e-mail ne casse jamais le parcours.
   private async send(to: string, subject: string, html: string) {

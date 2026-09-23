@@ -1,12 +1,11 @@
-import { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { AdminEditionProvider, useEdition } from './editionContext';
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell() {
   const { setUser } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -47,7 +46,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 md:px-8">
+          <Outlet />
+        </main>
       </div>
     </AdminEditionProvider>
   );
