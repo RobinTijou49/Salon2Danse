@@ -112,7 +112,7 @@ export function DashboardPage() {
         </p>
         <div className="mt-3 space-y-2">
           <ContactRow icon="✉️" label="Écris-nous" value="benevoles@salondeladanse.fr" />
-          <ContactRow icon="📞" label="Numéro d'urgence festival" value="02 41 00 00 00" />
+          <ContactRow icon="📞" label="Numéro d'urgence festival" value="07 83 28 87 28" />
         </div>
       </div>
 

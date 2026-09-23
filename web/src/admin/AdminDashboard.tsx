@@ -49,7 +49,7 @@ export function AdminDashboard() {
       {reminderMsg && <Banner tone="success">{reminderMsg}</Banner>}
 
       {/* Compteurs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Bénévoles inscrits" value={data.totalVolunteers} />
         <Stat label="Plannings validés" value={data.planningValidated} tone="ok" />
         <Stat label="En attente" value={data.planningDraft} tone="warn" />
@@ -111,7 +111,7 @@ export function AdminDashboard() {
 function Stat({ label, value, tone }: { label: string; value: number | string; tone?: 'ok' | 'warn' }) {
   const color = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : 'text-brand';
   return (
-    <div className="card p-4">
+    <div className="card lift p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className={`mt-1 text-3xl font-extrabold ${color}`}>{value}</p>
     </div>
@@ -127,7 +127,7 @@ function Bar({ label, rate, sub }: { label: string; rate: number; sub: string })
         <span className="shrink-0 text-xs text-muted tabular-nums">{sub} · {rate}%</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-line">
-        <div className={`h-full ${color}`} style={{ width: `${rate}%` }} />
+        <div className={`bar-fill h-full ${color}`} style={{ width: `${rate}%` }} />
       </div>
     </div>
   );

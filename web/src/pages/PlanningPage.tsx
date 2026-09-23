@@ -161,7 +161,7 @@ export function PlanningPage() {
       </section>
 
       {/* Missions du créneau sélectionné */}
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div key={slot.timeSlotId} className="stagger grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {slot.missions.map((m) => (
           <MissionCard
             key={m.missionSlotId}
@@ -257,7 +257,7 @@ function MissionCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-white p-4 ${
+      className={`lift rounded-2xl border bg-white p-4 ${
         m.bookedByMe ? 'border-brand border-l-4 bg-brand-50' : 'border-line'
       }`}
     >
@@ -286,7 +286,7 @@ function MissionCard({
           </span>
         </div>
         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-line">
-          <div className={`h-full ${meta.bar}`} style={{ width: `${fill}%` }} />
+          <div className={`bar-fill h-full ${meta.bar}`} style={{ width: `${fill}%` }} />
         </div>
       </div>
 

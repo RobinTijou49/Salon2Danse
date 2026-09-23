@@ -63,13 +63,13 @@ export function AdminSlots() {
 
       {/* Création */}
       <form onSubmit={submit} className="card grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto_auto]">
-        <select className="field" value={missionId} onChange={(e) => setMissionId(e.target.value)} required>
+        <select className="select" value={missionId} onChange={(e) => setMissionId(e.target.value)} required>
           <option value="">Mission…</option>
           {meta.data?.missions.map((m) => (
             <option key={m.id} value={m.id}>{m.name}{m.isPublic ? '' : ' (sensible)'}</option>
           ))}
         </select>
-        <select className="field" value={timeSlotId} onChange={(e) => setTimeSlotId(e.target.value)} required>
+        <select className="select" value={timeSlotId} onChange={(e) => setTimeSlotId(e.target.value)} required>
           <option value="">Créneau horaire…</option>
           {meta.data?.timeSlots.map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from './Logo';
 import { useAuth } from '../lib/auth';
@@ -38,6 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, setUser } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function logout() {
     await api.logout().catch(() => {});
@@ -73,7 +74,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-12">{children}</main>
+      <main className="flex-1 px-4 pb-28 pt-5 md:px-8 md:pb-12">
+        <div key={location.pathname} className="anim-in">{children}</div>
+      </main>
 
       {/* Barre de navigation basse (mobile uniquement) */}
       {user?.profile && (

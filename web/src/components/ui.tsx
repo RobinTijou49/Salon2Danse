@@ -47,8 +47,8 @@ export function ConfirmDialog({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 p-4">
-      <div className="card w-full max-w-sm p-5">
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
+      <div className="card anim-pop w-full max-w-sm p-5">
         <h3 className="text-lg font-bold text-ink">{title}</h3>
         <div className="mt-2 text-sm text-muted">{body}</div>
         <div className="mt-5 flex gap-3">

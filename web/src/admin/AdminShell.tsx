@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../lib/auth';
@@ -9,6 +9,7 @@ export function AdminShell() {
   const { setUser } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function logout() {
     await api.logout().catch(() => {});
@@ -48,7 +49,9 @@ export function AdminShell() {
           </div>
         </header>
         <main className="flex-1 px-4 py-6 md:px-8">
-          <Outlet />
+          <div key={location.pathname} className="anim-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </AdminEditionProvider>
@@ -62,7 +65,7 @@ function EditionSelect() {
     <select
       value={editionId ?? ''}
       onChange={(e) => setEditionId(e.target.value)}
-      className="rounded-lg bg-white/15 px-2 py-1.5 text-xs font-semibold text-white outline-none"
+      className="select-light rounded-lg bg-white/15 px-2 py-1.5 text-xs font-semibold text-white outline-none"
       title="Édition affichée"
     >
       {editions.map((e) => (

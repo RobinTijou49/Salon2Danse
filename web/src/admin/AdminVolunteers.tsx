@@ -42,27 +42,27 @@ export function AdminVolunteers() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
-          <select className="field" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+          <select className="select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">Validation : toutes</option>
             <option value="PENDING">En attente</option>
             <option value="VALIDATED">Validé</option>
           </select>
-          <select className="field" value={planning} onChange={(e) => { setPlanning(e.target.value); setPage(1); }}>
+          <select className="select" value={planning} onChange={(e) => { setPlanning(e.target.value); setPage(1); }}>
             <option value="">Planning : tous</option>
             <option value="DRAFT">Brouillon</option>
             <option value="VALIDATED">Validé</option>
           </select>
-          <select className="field" value={dayId} onChange={(e) => { setDayId(e.target.value); setPage(1); }}>
+          <select className="select" value={dayId} onChange={(e) => { setDayId(e.target.value); setPage(1); }}>
             <option value="">Jour : tous</option>
             {meta.data?.days.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
           </select>
-          <select className="field" value={missionId} onChange={(e) => { setMissionId(e.target.value); setPage(1); }}>
+          <select className="select" value={missionId} onChange={(e) => { setMissionId(e.target.value); setPage(1); }}>
             <option value="">Mission : toutes</option>
             {meta.data?.missions.map((m) => (
               <option key={m.id} value={m.id}>{m.name}{m.isPublic ? '' : ' (sensible)'}</option>
             ))}
           </select>
-          <select className="field" value={minor} onChange={(e) => { setMinor(e.target.value); setPage(1); }}>
+          <select className="select" value={minor} onChange={(e) => { setMinor(e.target.value); setPage(1); }}>
             <option value="">Tous les âges</option>
             <option value="true">Mineurs uniquement</option>
           </select>
@@ -165,8 +165,8 @@ function VolunteerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const resetPw = useMutation({ mutationFn: () => admin.resetPassword(id) });
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-ink/40" onClick={onClose}>
-      <div className="h-full w-full max-w-md overflow-y-auto bg-paper p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="anim-fade fixed inset-0 z-50 flex justify-end bg-ink/40" onClick={onClose}>
+      <div className="anim-slide h-full w-full max-w-md overflow-y-auto bg-paper p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-ink">Fiche bénévole</h2>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-sm text-muted hover:bg-line">Fermer</button>

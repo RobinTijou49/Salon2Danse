@@ -35,13 +35,69 @@
   .field {
     @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-ink outline-none transition placeholder:text-muted/60 focus:border-brand focus:ring-4 focus:ring-brand/10;
   }
+  /* Select stylé : flèche personnalisée, pas d'apparence native */
+  .select {
+    @apply field cursor-pointer appearance-none bg-no-repeat pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B6560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-size: 1.05rem;
+  }
+  .select-light {
+    @apply cursor-pointer appearance-none bg-no-repeat pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-size: 0.9rem;
+  }
   .label {
     @apply block text-sm font-semibold text-ink mb-1.5;
   }
   .card {
-    @apply rounded-2xl border border-line bg-white shadow-card;
+    @apply rounded-2xl border border-line bg-white shadow-card transition-shadow;
   }
   .eyebrow {
     @apply font-display text-xs font-semibold uppercase tracking-[.14em] text-brand;
   }
 }
+
+/* ---------- Animations (respectent prefers-reduced-motion) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes animIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes animPop {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes animFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes animSlide {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .anim-in { animation: animIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .anim-pop { animation: animPop 0.18s ease-out both; }
+  .anim-fade { animation: animFade 0.18s ease-out both; }
+  .anim-slide { animation: animSlide 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  /* Révélation en cascade des enfants directs */
+  .stagger > * { animation: animIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  .stagger > *:nth-child(8) { animation-delay: 0.30s; }
+
+  /* Cartes interactives : léger soulèvement au survol */
+  .lift { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: 0 6px 22px -12px rgba(122, 41, 30, 0.35); }
+}
+
+/* Barres de jauge fluides */
+.bar-fill { transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
