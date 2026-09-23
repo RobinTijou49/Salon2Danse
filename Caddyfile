@@ -1,7 +1,9 @@
-# Caddy sert le front et proxifie l'API. HTTPS automatique quand DOMAIN
-# est un vrai domaine ; certificat local auto-signé sur "localhost" ;
-# HTTP simple si DOMAIN=:80.
+# Caddy sert le front et proxifie l'API.
+#  - DOMAIN = vrai domaine        -> HTTPS Let's Encrypt automatique (certificat de confiance)
+#  - DOMAIN = IP + CADDY_TLS=tls internal -> HTTPS auto-signé (avertissement navigateur)
+#  - DOMAIN = :80                 -> HTTP simple
 {$DOMAIN:localhost} {
+	{$CADDY_TLS}
 	encode gzip
 
 	# Tout ce qui commence par /api part vers l'API NestJS
