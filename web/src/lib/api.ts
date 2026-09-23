@@ -216,7 +216,8 @@ function qs(params: Record<string, string | number | undefined>) {
 }
 
 export const admin = {
-  stats: () => req<AdminStats>('/admin/stats'),
+  stats: (editionId?: string) =>
+    req<AdminStats>('/admin/stats' + (editionId ? '?editionId=' + editionId : '')),
   meta: () => req<AdminMeta>('/admin/meta'),
   volunteers: (p: Record<string, string | number | undefined>) =>
     req<VolunteerList>('/admin/volunteers' + qs(p)),
