@@ -88,6 +88,49 @@ export class PhotosService implements OnModuleInit {
     return { ok: true };
   }
 
+  /** Téléverse l'autorisation parentale d'un bénévole mineur (PDF ou image). */
+  async uploadParentalConsent(userId: string, buffer: Buffer, mimetype: string) {
+    const profile = await this.prisma.volunteerProfile.findUnique({ where: { userId } });
+    if (!profile) throw new ForbiddenException('Profil bénévole requis.');
+    if (!profile.isMinor) {
+      throw new BadRequestException('Réservé aux profils mineurs.');
+    }
+    const ext: Record<string, string> = {
+      'application/pdf': 'pdf',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+    };
+    if (!ext[mimetype]) {
+      throw new BadRequestException('Format accepté : PDF, JPEG ou PNG.');
+    }
+    const key = `parental/${profile.id}.${ext[mimetype]}`;
+    await this.s3.send(
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: buffer, ContentType: mimetype }),
+    );
+    await this.prisma.volunteerProfile.update({
+      where: { id: profile.id },
+      data: { parentalConsentKey: key },
+    });
+    return { ok: true };
+  }
+
+  /** Diffuse l'autorisation parentale d'un bénévole (consultation admin). */
+  async streamParentalConsent(profileId: string, res: Response) {
+    const profile = await this.prisma.volunteerProfile.findUnique({ where: { id: profileId } });
+    if (!profile?.parentalConsentKey) throw new NotFoundException('Aucune autorisation fournie.');
+    const type = profile.parentalConsentKey.endsWith('.pdf')
+      ? 'application/pdf'
+      : profile.parentalConsentKey.endsWith('.png')
+        ? 'image/png'
+        : 'image/jpeg';
+    const obj = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: profile.parentalConsentKey }),
+    );
+    res.setHeader('Content-Type', type);
+    res.setHeader('Content-Disposition', 'inline; filename="autorisation-parentale"');
+    (obj.Body as Readable).pipe(res);
+  }
+
   /** Récupère l'objet stocké sous une clé (pour le badge). */
   async getObjectBuffer(key: string): Promise<Buffer> {
     const obj = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));

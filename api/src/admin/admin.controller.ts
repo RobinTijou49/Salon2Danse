@@ -157,6 +157,12 @@ export class AdminController {
     return this.admin.validateProfile(u.sub, id);
   }
 
+  @Post('volunteers/:id/reject')
+  @ApiOperation({ summary: 'Refuser un profil (mineur non conforme)' })
+  reject(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.admin.rejectProfile(u.sub, id);
+  }
+
   @Post('volunteers/:id/unlock')
   @ApiOperation({ summary: 'Déverrouiller un planning validé' })
   unlock(@CurrentUser() u: AuthUser, @Param('id') id: string) {

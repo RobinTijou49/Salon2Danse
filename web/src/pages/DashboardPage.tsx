@@ -1,6 +1,7 @@
+import { ChangeEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, ApiError, Me } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Spinner, Banner } from '../components/ui';
 
@@ -51,11 +52,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {user.profile.isMinor && user.profile.validationStatus === 'PENDING' && (
-        <Banner tone="warn">
-          Ton profil (mineur) est en attente de validation par l'organisation.
-        </Banner>
-      )}
+      {user.profile.isMinor && <ParentalConsentCard profile={user.profile} />}
 
       {/* Avancement */}
       <div className="card p-5">
@@ -168,6 +165,82 @@ function ContactRow({ icon, label, value }: { icon: string; label: string; value
         <p className="text-xs text-muted">{label}</p>
         <p className="truncate font-semibold text-brand">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function ParentalConsentCard({ profile }: { profile: NonNullable<Me['profile']> }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function pick(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) {
+      setError('Fichier trop lourd (10 Mo maximum).');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.uploadParentalConsent(f);
+      await qc.invalidateQueries({ queryKey: ['me'] });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (profile.validationStatus === 'VALIDATED') {
+    return <Banner tone="success">✅ Ton profil (mineur) a été validé par l'organisation.</Banner>;
+  }
+  if (profile.validationStatus === 'REJECTED') {
+    return (
+      <Banner tone="error">
+        Ton profil n'a pas été validé. Contacte l'organisation : benevoles@salondeladanse.fr
+      </Banner>
+    );
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-base font-bold text-ink">
+          <span>📄</span> Autorisation parentale
+        </h2>
+        <span className="rounded-full bg-warnbg px-3 py-1 text-xs font-bold text-warn">
+          {profile.hasParentalConsent ? 'En attente' : 'À fournir'}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-muted">
+        En tant que <b>mineur</b>, ton inscription doit être validée par l'organisation. Téléverse
+        ton autorisation parentale signée (PDF ou photo).
+      </p>
+
+      {error && (
+        <div className="mt-3">
+          <Banner tone="error">{error}</Banner>
+        </div>
+      )}
+
+      {profile.hasParentalConsent && (
+        <p className="mt-3 rounded-xl bg-okbg px-3 py-2 text-sm text-ok">
+          ✓ Document envoyé — en attente de validation par l'organisation.
+        </p>
+      )}
+
+      <label className="btn-ghost btn-block mt-4 cursor-pointer">
+        {busy ? 'Envoi…' : profile.hasParentalConsent ? 'Remplacer le document' : 'Téléverser mon autorisation'}
+        <input
+          type="file"
+          accept="application/pdf,image/*"
+          className="hidden"
+          onChange={pick}
+          disabled={busy}
+        />
+      </label>
     </div>
   );
 }

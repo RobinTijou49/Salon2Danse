@@ -184,6 +184,7 @@ function VolunteerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
     fn().then(() => { setMsg(ok); refresh(); }).catch((e) => setMsg(e instanceof ApiError ? e.message : 'Erreur.'));
 
   const validate = useMutation({ mutationFn: () => admin.validate(id) });
+  const reject = useMutation({ mutationFn: () => admin.reject(id) });
   const unlock = useMutation({ mutationFn: () => admin.unlock(id) });
   const resetPw = useMutation({ mutationFn: () => admin.resetPassword(id) });
 
@@ -217,10 +218,32 @@ function VolunteerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               </Banner>
             )}
 
+            {/* Autorisation parentale (mineurs) */}
+            {data.isMinor && (
+              <div className="card p-4">
+                <h3 className="mb-1 text-sm font-bold text-ink">Autorisation parentale</h3>
+                {data.hasParentalConsent ? (
+                  <a
+                    href={admin.parentalConsentUrl(id)}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-sm font-semibold text-brand underline"
+                  >
+                    📄 Consulter le document fourni
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted">Aucun document fourni par le bénévole.</p>
+                )}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="grid grid-cols-2 gap-2">
               {data.validationStatus !== 'VALIDATED' && (
                 <button className="btn-primary text-sm" onClick={() => act(() => validate.mutateAsync(), 'Profil validé.')}>Valider le profil</button>
+              )}
+              {data.isMinor && data.validationStatus !== 'REJECTED' && (
+                <button className="btn-ghost text-sm" onClick={() => act(() => reject.mutateAsync(), 'Profil refusé.')}>Refuser le profil</button>
               )}
               {data.planningStatus === 'VALIDATED' && (
                 <button className="btn-ghost text-sm" onClick={() => act(() => unlock.mutateAsync(), 'Planning déverrouillé.')}>Déverrouiller le planning</button>

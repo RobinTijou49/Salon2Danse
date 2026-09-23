@@ -189,6 +189,7 @@ export class AuthService {
             phone: user.profile.phone,
             isMinor: user.profile.isMinor,
             hasPhoto: !!user.profile.photoKey,
+            hasParentalConsent: !!user.profile.parentalConsentKey,
             validationStatus: user.profile.validationStatus,
             planningStatus: user.profile.planningStatus,
           }

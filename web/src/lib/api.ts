@@ -44,7 +44,8 @@ export type Me = {
     phone: string;
     isMinor: boolean;
     hasPhoto: boolean;
-    validationStatus: 'PENDING' | 'VALIDATED';
+    hasParentalConsent: boolean;
+    validationStatus: 'PENDING' | 'VALIDATED' | 'REJECTED';
     planningStatus: 'DRAFT' | 'VALIDATED';
   } | null;
 };
@@ -144,6 +145,22 @@ export const api = {
     }
     return data;
   },
+  uploadParentalConsent: async (file: File) => {
+    const fd = new FormData();
+    fd.append('document', file);
+    const send = () => fetch(BASE + '/photos/parental-consent', { method: 'POST', credentials: 'include', body: fd });
+    let res = await send();
+    if (res.status === 401) {
+      const r = await fetch(BASE + '/auth/refresh', { method: 'POST', credentials: 'include' });
+      if (r.ok) res = await send();
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = Array.isArray(data?.message) ? data.message.join(' · ') : data?.message;
+      throw new ApiError(res.status, msg || 'Envoi impossible.');
+    }
+    return data;
+  },
   // URL de la photo du bénévole connecté (avec anti-cache).
   myPhotoUrl: (bust?: string | number) => `${BASE}/photos/me${bust ? `?v=${bust}` : ''}`,
   verifyBadge: (token: string) =>
@@ -189,6 +206,7 @@ export type VolunteerList = {
 };
 export type VolunteerDetail = VolunteerRow & {
   userId: string;
+  hasParentalConsent: boolean;
   bookings: {
     bookingId: string;
     mission: string;
@@ -224,6 +242,8 @@ export const admin = {
   update: (id: string, dto: Record<string, unknown>) =>
     req('/admin/volunteers/' + id, { method: 'PATCH', body: JSON.stringify(dto) }),
   validate: (id: string) => req('/admin/volunteers/' + id + '/validate', { method: 'POST' }),
+  reject: (id: string) => req('/admin/volunteers/' + id + '/reject', { method: 'POST' }),
+  parentalConsentUrl: (profileId: string) => `${BASE}/photos/parental-consent/${profileId}`,
   unlock: (id: string) => req('/admin/volunteers/' + id + '/unlock', { method: 'POST' }),
   resetPassword: (id: string) =>
     req<{ tempPassword: string }>('/admin/volunteers/' + id + '/reset-password', { method: 'POST' }),

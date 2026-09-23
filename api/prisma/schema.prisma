@@ -27,6 +27,7 @@ enum InvitationStatus {
 enum ValidationStatus {
   PENDING
   VALIDATED
+  REJECTED
 }
 
 enum PlanningStatus {
@@ -99,6 +100,7 @@ model VolunteerProfile {
   lastName            String
   phone               String
   photoKey            String? // clé de l'objet dans MinIO/S3
+  parentalConsentKey  String? // autorisation parentale (mineurs), MinIO/S3
   isMinor             Boolean          @default(false)
   validationStatus    ValidationStatus @default(PENDING)
   planningStatus      PlanningStatus   @default(DRAFT)

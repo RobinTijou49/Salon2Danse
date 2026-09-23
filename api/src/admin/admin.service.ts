@@ -350,6 +350,7 @@ export class AdminService {
       phone: p.phone,
       isMinor: p.isMinor,
       hasPhoto: !!p.photoKey,
+      hasParentalConsent: !!p.parentalConsentKey,
       validationStatus: p.validationStatus,
       planningStatus: p.planningStatus,
       bookings: p.bookings
@@ -379,6 +380,18 @@ export class AdminService {
     });
     await this.audit(actor, 'VALIDATE_PROFILE', 'VolunteerProfile', id,
       { validationStatus: p.validationStatus }, { validationStatus: 'VALIDATED' });
+    return { ok: true };
+  }
+
+  async rejectProfile(actor: string, id: string) {
+    const p = await this.prisma.volunteerProfile.findUnique({ where: { id } });
+    if (!p) throw new NotFoundException('Bénévole introuvable.');
+    await this.prisma.volunteerProfile.update({
+      where: { id },
+      data: { validationStatus: 'REJECTED' },
+    });
+    await this.audit(actor, 'REJECT_PROFILE', 'VolunteerProfile', id,
+      { validationStatus: p.validationStatus }, { validationStatus: 'REJECTED' });
     return { ok: true };
   }
 
