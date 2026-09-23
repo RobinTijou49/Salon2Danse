@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { Query } from '@nestjs/common';
 import { BadgesService } from './badges.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -32,6 +33,15 @@ export class BadgesController {
   @ApiOperation({ summary: "Badge PDF d'un bénévole (admin)" })
   volunteerBadge(@Param('profileId') profileId: string, @Req() req: Request, @Res() res: Response) {
     return this.badges.renderBadge({ id: profileId }, baseUrlOf(req), res);
+  }
+
+  @Get('sheet')
+  @ApiCookieAuth()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Planche A4 de tous les badges (admin)' })
+  sheet(@Query('editionId') editionId: string | undefined, @Req() req: Request, @Res() res: Response) {
+    return this.badges.renderSheet(editionId, baseUrlOf(req), res);
   }
 
   // --- Vérification publique (scan du QR) ---

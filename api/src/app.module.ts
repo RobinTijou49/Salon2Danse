@@ -7,10 +7,12 @@ import { PlanningModule } from './planning/planning.module';
 import { PhotosModule } from './photos/photos.module';
 import { BadgesModule } from './badges/badges.module';
 import { AdminModule } from './admin/admin.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    MailModule,
     PrismaModule,
     HealthModule,
     AuthModule,

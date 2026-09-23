@@ -1,9 +1,31 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { admin } from '../lib/api';
-import { Spinner } from '../components/ui';
+import { Spinner, Banner } from '../components/ui';
+import { useEdition } from './editionContext';
 
 export function AdminDashboard() {
-  const { data, isLoading } = useQuery({ queryKey: ['admin', 'stats'], queryFn: admin.stats });
+  const { editionId } = useEdition();
+  const [reminderMsg, setReminderMsg] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'stats', editionId],
+    queryFn: () => admin.stats(editionId),
+  });
+
+  async function sendReminders() {
+    setSending(true);
+    setReminderMsg(null);
+    try {
+      const r = await admin.sendReminders(editionId);
+      setReminderMsg(`Rappel J-3 envoyé à ${r.sent} bénévole(s) (visible dans Mailpit).`);
+    } catch {
+      setReminderMsg("Envoi impossible.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (isLoading || !data) return <Spinner label="Chargement…" />;
 
   return (
@@ -17,8 +39,14 @@ export function AdminDashboard() {
           <a href={admin.exports.xlsx} className="btn-primary px-4 py-2 text-sm">⬇ Excel</a>
           <a href={admin.exports.volunteersCsv} className="btn-ghost px-4 py-2 text-sm">CSV bénévoles</a>
           <a href={admin.exports.planningCsv} className="btn-ghost px-4 py-2 text-sm">CSV planning</a>
+          <a href={admin.badgeSheetUrl(editionId)} target="_blank" rel="noopener" className="btn-ghost px-4 py-2 text-sm">🎫 Planche badges</a>
+          <button onClick={sendReminders} disabled={sending} className="btn-ghost px-4 py-2 text-sm">
+            {sending ? 'Envoi…' : '✉ Rappels J-3'}
+          </button>
         </div>
       </div>
+
+      {reminderMsg && <Banner tone="success">{reminderMsg}</Banner>}
 
       {/* Compteurs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

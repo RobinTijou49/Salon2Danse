@@ -29,8 +29,39 @@ export class AdminController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Compteurs du tableau de bord' })
-  stats() {
-    return this.admin.stats();
+  stats(@Query('editionId') editionId?: string) {
+    return this.admin.stats(editionId);
+  }
+
+  // ---- Éditions ----
+  @Get('editions')
+  @ApiOperation({ summary: 'Liste des éditions' })
+  editions() {
+    return this.admin.editions();
+  }
+
+  @Post('editions')
+  @ApiOperation({ summary: 'Créer une édition (structure + codes)' })
+  createEdition(@CurrentUser() u: AuthUser, @Body() dto: { name: string; startDate: string }) {
+    return this.admin.createEdition(u.sub, dto);
+  }
+
+  @Post('editions/:id/archive')
+  @ApiOperation({ summary: 'Archiver une édition (lecture seule)' })
+  archive(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.admin.setArchived(u.sub, id, true);
+  }
+
+  @Post('editions/:id/unarchive')
+  @ApiOperation({ summary: 'Désarchiver une édition' })
+  unarchive(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.admin.setArchived(u.sub, id, false);
+  }
+
+  @Post('emails/reminders')
+  @ApiOperation({ summary: 'Envoyer les rappels J-3 (plannings validés)' })
+  reminders(@CurrentUser() u: AuthUser, @Query('editionId') editionId?: string) {
+    return this.admin.sendReminders(u.sub, editionId);
   }
 
   @Get('meta')
@@ -47,9 +78,12 @@ export class AdminController {
     @Query('planning') planning?: string,
     @Query('dayId') dayId?: string,
     @Query('missionId') missionId?: string,
+    @Query('editionId') editionId?: string,
     @Query('page') page?: string,
   ) {
-    return this.admin.volunteers({ search, status, planning, dayId, missionId, page: Number(page) });
+    return this.admin.volunteers({
+      search, status, planning, dayId, missionId, editionId, page: Number(page),
+    });
   }
 
   @Get('volunteers/:id')

@@ -123,6 +123,10 @@ export const api = {
     req('/planning/book', { method: 'POST', body: JSON.stringify({ missionSlotId }) }),
   unbook: (bookingId: string) => req('/planning/book/' + bookingId, { method: 'DELETE' }),
   validate: () => req<{ ok: boolean; validatedSlots: number }>('/planning/validate', { method: 'POST' }),
+  forgotPassword: (email: string) =>
+    req('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token: string, password: string) =>
+    req('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   uploadPhoto: async (file: File) => {
     const fd = new FormData();
     fd.append('photo', file);
@@ -226,11 +230,35 @@ export const admin = {
   removeBooking: (bid: string) => req('/admin/bookings/' + bid, { method: 'DELETE' }),
   audit: () => req<AuditEntry[]>('/admin/audit'),
   badgeUrl: (profileId: string) => `${BASE}/badges/volunteer/${profileId}`,
+  badgeSheetUrl: (editionId?: string) =>
+    `${BASE}/badges/sheet${editionId ? '?editionId=' + editionId : ''}`,
+  editions: () => req<AdminEdition[]>('/admin/editions'),
+  createEdition: (name: string, startDate: string) =>
+    req<{ id: string; codes: string[] }>('/admin/editions', {
+      method: 'POST',
+      body: JSON.stringify({ name, startDate }),
+    }),
+  archiveEdition: (id: string, archived: boolean) =>
+    req(`/admin/editions/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' }),
+  sendReminders: (editionId?: string) =>
+    req<{ sent: number }>('/admin/emails/reminders' + (editionId ? '?editionId=' + editionId : ''), {
+      method: 'POST',
+    }),
   exports: {
     volunteersCsv: `${BASE}/admin/export/volunteers.csv`,
     planningCsv: `${BASE}/admin/export/planning.csv`,
     xlsx: `${BASE}/admin/export/salon.xlsx`,
   },
+};
+
+export type AdminEdition = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  isArchived: boolean;
+  isLocked: boolean;
+  volunteers: number;
 };
 
 export type BadgeVerification =

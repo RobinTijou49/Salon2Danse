@@ -48,6 +48,7 @@ model Edition {
   registrationOpensAt  DateTime?
   registrationClosesAt DateTime?
   isLocked             Boolean   @default(false) // verrou manuel admin
+  isArchived           Boolean   @default(false) // édition passée, lecture seule
   minSlots             Int       @default(1)
   maxSlots             Int       @default(3)
   orangeThresholdPct   Int       @default(25) // seuil "presque complet"

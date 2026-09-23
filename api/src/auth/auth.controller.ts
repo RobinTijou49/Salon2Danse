@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import { VerifyInviteDto } from './dto/verify-invite.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password.dto';
 import { AuthGuard } from './auth.guard';
 import { CurrentUser, AuthUser } from './current-user.decorator';
 
@@ -76,6 +77,21 @@ export class AuthController {
     const user = await this.auth.userFromRefresh(token);
     this.setAuthCookies(res, await this.auth.issueTokens(user));
     return { ok: true };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Demander un lien de réinitialisation (par e-mail)' })
+  forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0] || req.protocol;
+    return this.auth.forgotPassword(dto.email, `${proto}://${req.get('host')}`);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Définir un nouveau mot de passe via le jeton' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.token, dto.password);
   }
 
   @Post('logout')

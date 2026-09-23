@@ -73,6 +73,11 @@ export function LoginPage() {
           <button type="submit" className="btn-primary btn-block" disabled={busy}>
             {busy ? 'Connexion…' : 'Se connecter'}
           </button>
+          <p className="text-center">
+            <Link to="/forgot-password" className="text-sm font-semibold text-brand">
+              Mot de passe oublié ?
+            </Link>
+          </p>
         </form>
       </div>
 

@@ -10,9 +10,12 @@ import { PlanningPage } from './pages/PlanningPage';
 import { RecapPage } from './pages/RecapPage';
 import { PhotoGatePage } from './pages/PhotoGatePage';
 import { VerifyPage } from './pages/VerifyPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminShell } from './admin/AdminShell';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { AdminVolunteers } from './admin/AdminVolunteers';
+import { AdminEditions } from './admin/AdminEditions';
 import { AdminAudit } from './admin/AdminAudit';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -45,6 +48,11 @@ export default function App() {
         path="/register"
         element={loading ? <Spinner /> : user ? <Navigate to="/" replace /> : <RegisterPage />}
       />
+      <Route
+        path="/forgot-password"
+        element={loading ? <Spinner /> : user ? <Navigate to="/" replace /> : <ForgotPasswordPage />}
+      />
+      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       {/* Vérification publique d'un badge (scan du QR) */}
       <Route path="/verify/:token" element={<VerifyPage />} />
 
@@ -56,6 +64,7 @@ export default function App() {
       {/* Espace administrateur */}
       <Route path="/admin" element={<ProtectedAdmin><AdminDashboard /></ProtectedAdmin>} />
       <Route path="/admin/volunteers" element={<ProtectedAdmin><AdminVolunteers /></ProtectedAdmin>} />
+      <Route path="/admin/editions" element={<ProtectedAdmin><AdminEditions /></ProtectedAdmin>} />
       <Route path="/admin/audit" element={<ProtectedAdmin><AdminAudit /></ProtectedAdmin>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -155,6 +155,67 @@ export class BadgesService {
       .text('Scanner pour vérifier', x, qy + qs + 4, { width: w, align: 'center' });
   }
 
+  /** Planche A4 de tous les badges d'une édition (impression en lot). */
+  async renderSheet(editionIdParam: string | undefined, baseUrl: string, res: Response) {
+    const editionId =
+      editionIdParam ??
+      (
+        await this.prisma.edition.findFirst({
+          orderBy: [{ isArchived: 'asc' }, { startDate: 'desc' }],
+        })
+      )?.id;
+    const profiles = await this.prisma.volunteerProfile.findMany({
+      where: { editionId },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+
+    const doc = new PDFDocument({ size: 'A4', margin: 0 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="planche-badges.pdf"');
+    doc.pipe(res);
+
+    const W = 250;
+    const H = 368;
+    const cols = 2;
+    const rows = 2;
+    const perPage = cols * rows;
+    const mx = (595.28 - cols * W) / (cols + 1);
+    const my = (841.89 - rows * H) / (rows + 1);
+
+    if (profiles.length === 0) {
+      doc.fontSize(14).fillColor(MUTED).text('Aucun bénévole pour cette édition.', 0, 400, {
+        width: 595,
+        align: 'center',
+      });
+      doc.end();
+      return;
+    }
+
+    let i = 0;
+    for (const p of profiles) {
+      const pos = i % perPage;
+      if (i > 0 && pos === 0) doc.addPage();
+      const c = pos % cols;
+      const r = Math.floor(pos / cols);
+      const x = mx + c * (W + mx);
+      const y = my + r * (H + my);
+
+      const token = await this.signBadge(p.id);
+      const qrBuf = await QRCode.toBuffer(`${baseUrl}/verify/${token}`, { margin: 1, width: 300 });
+      let photoBuf: Buffer | null = null;
+      if (p.photoKey) {
+        try {
+          photoBuf = await this.photos.getObjectBuffer(p.photoKey);
+        } catch {
+          photoBuf = null;
+        }
+      }
+      this.drawBadge(doc, x, y, W, H, p, photoBuf, qrBuf);
+      i++;
+    }
+    doc.end();
+  }
+
   /** Vérifie un jeton de QR et renvoie les infos affichables à l'entrée. */
   async verify(token: string) {
     let profileId: string;

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { admin, ApiError, VolunteerRow } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
+import { useEdition } from './editionContext';
 
 export function AdminVolunteers() {
+  const { editionId } = useEdition();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [planning, setPlanning] = useState('');
@@ -13,7 +15,7 @@ export function AdminVolunteers() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const meta = useQuery({ queryKey: ['admin', 'meta'], queryFn: admin.meta });
-  const params = { search, status, planning, dayId, missionId, page };
+  const params = { search, status, planning, dayId, missionId, editionId, page };
   const list = useQuery({
     queryKey: ['admin', 'volunteers', params],
     queryFn: () => admin.volunteers(params),

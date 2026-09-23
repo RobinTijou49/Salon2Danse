@@ -6,11 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { canAddBooking, reasonLabel, SlotRef } from './booking-rules';
 
 type Edition = {
   id: string;
   isLocked: boolean;
+  isArchived: boolean;
   registrationOpensAt: Date | null;
   registrationClosesAt: Date | null;
   minSlots: number;
@@ -20,9 +22,13 @@ type Edition = {
 
 @Injectable()
 export class PlanningService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   private windowOpen(edition: Edition): boolean {
+    if (edition.isArchived) return false; // édition passée = lecture seule
     if (edition.isLocked) return false;
     const now = new Date();
     if (edition.registrationOpensAt && now < edition.registrationOpensAt) return false;
@@ -270,6 +276,22 @@ export class PlanningService {
         data: { planningStatus: 'VALIDATED', planningValidatedAt: new Date() },
       }),
     ]);
+
+    // E-mail de confirmation avec récapitulatif (non bloquant)
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const recap = await this.myPlanning(userId);
+    if (user) {
+      this.mail.validationRecap(
+        user.email,
+        profile.firstName,
+        recap.items.map((i) => ({
+          day: i.day,
+          startTime: i.startTime,
+          endTime: i.endTime,
+          mission: i.mission,
+        })),
+      );
+    }
     return { ok: true, validatedSlots: count };
   }
 

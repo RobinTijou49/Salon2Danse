@@ -6,13 +6,40 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import * as argon2 from 'argon2';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+
+const SLOTS = [
+  ['08:30', '10:00'],
+  ['10:00', '12:00'],
+  ['12:00', '14:00'],
+  ['14:00', '16:00'],
+  ['16:00', '18:00'],
+];
+const PUBLIC_MISSIONS = [
+  'Accueil exposants', 'Vestiaires', 'Point Info', 'Masterclass / Conférences',
+  'Loges danseurs', 'Logistique (Niveau 0 et -2)', 'Scène principale',
+  'Stand JayDance', 'Village Danses du Monde',
+];
+const SENSITIVE_MISSIONS = ['Billetterie', 'Caisse'];
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
+
+  /** Édition courante par défaut : la plus récente non archivée. */
+  private async currentEditionId(editionId?: string): Promise<string | undefined> {
+    if (editionId) return editionId;
+    const e = await this.prisma.edition.findFirst({
+      orderBy: [{ isArchived: 'asc' }, { startDate: 'desc' }],
+    });
+    return e?.id;
+  }
 
   private async audit(
     actorUserId: string,
@@ -35,14 +62,16 @@ export class AdminService {
   }
 
   // ---- Tableau de bord ----
-  async stats() {
+  async stats(editionIdParam?: string) {
+    const editionId = await this.currentEditionId(editionIdParam);
     const [total, validated, minorsPending, slots, counts] = await Promise.all([
-      this.prisma.volunteerProfile.count(),
-      this.prisma.volunteerProfile.count({ where: { planningStatus: 'VALIDATED' } }),
+      this.prisma.volunteerProfile.count({ where: { editionId } }),
+      this.prisma.volunteerProfile.count({ where: { editionId, planningStatus: 'VALIDATED' } }),
       this.prisma.volunteerProfile.count({
-        where: { isMinor: true, validationStatus: 'PENDING' },
+        where: { editionId, isMinor: true, validationStatus: 'PENDING' },
       }),
       this.prisma.missionSlot.findMany({
+        where: { mission: { editionId } },
         include: { mission: true, timeSlot: { include: { day: true } } },
       }),
       this.prisma.booking.groupBy({ by: ['missionSlotId'], _count: { _all: true } }),
@@ -133,11 +162,13 @@ export class AdminService {
     planning?: string;
     dayId?: string;
     missionId?: string;
+    editionId?: string;
     page?: number;
   }) {
     const take = 20;
     const page = Math.max(1, Number(q.page) || 1);
-    const AND: any[] = [];
+    const editionId = await this.currentEditionId(q.editionId);
+    const AND: any[] = [{ editionId }];
     if (q.search) {
       AND.push({
         OR: [
@@ -334,6 +365,129 @@ export class AdminService {
     await this.prisma.booking.delete({ where: { id: bookingId } });
     await this.audit(actor, 'REMOVE_BOOKING', 'Booking', bookingId, b, null);
     return { ok: true };
+  }
+
+  // ---- Multi-éditions ----
+  async editions() {
+    const list = await this.prisma.edition.findMany({
+      orderBy: [{ isArchived: 'asc' }, { startDate: 'desc' }],
+    });
+    return Promise.all(
+      list.map(async (e) => ({
+        id: e.id,
+        name: e.name,
+        startDate: e.startDate,
+        endDate: e.endDate,
+        isArchived: e.isArchived,
+        isLocked: e.isLocked,
+        volunteers: await this.prisma.volunteerProfile.count({ where: { editionId: e.id } }),
+      })),
+    );
+  }
+
+  /** Crée une édition avec sa structure complète (jours, créneaux, missions) + codes. */
+  async createEdition(actor: string, dto: { name: string; startDate: string }) {
+    const start = new Date(dto.startDate);
+    const edition = await this.prisma.edition.create({
+      data: {
+        name: dto.name,
+        startDate: start,
+        endDate: new Date(start.getTime() + 2 * 86400000),
+        registrationOpensAt: new Date(),
+        registrationClosesAt: new Date(start.getTime() - 86400000),
+      },
+    });
+
+    const missions: { id: string; defaultCapacity: number }[] = [];
+    for (const name of PUBLIC_MISSIONS) {
+      missions.push(
+        await this.prisma.mission.create({
+          data: { editionId: edition.id, name, isPublic: true, defaultCapacity: 4 },
+        }),
+      );
+    }
+    for (const name of SENSITIVE_MISSIONS) {
+      missions.push(
+        await this.prisma.mission.create({
+          data: { editionId: edition.id, name, isPublic: false, defaultCapacity: 2 },
+        }),
+      );
+    }
+
+    for (let d = 0; d < 3; d++) {
+      const date = new Date(start.getTime() + d * 86400000);
+      const raw = date.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const day = await this.prisma.day.create({
+        data: { editionId: edition.id, date, label: raw.charAt(0).toUpperCase() + raw.slice(1) },
+      });
+      for (let i = 0; i < SLOTS.length; i++) {
+        const ts = await this.prisma.timeSlot.create({
+          data: { dayId: day.id, indexInDay: i, startTime: SLOTS[i][0], endTime: SLOTS[i][1] },
+        });
+        for (const m of missions) {
+          await this.prisma.missionSlot.create({
+            data: { missionId: m.id, timeSlotId: ts.id, capacity: m.defaultCapacity },
+          });
+        }
+      }
+    }
+
+    const codes: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const code = randomBytes(4).toString('hex').toUpperCase();
+      codes.push(code);
+      await this.prisma.invitationCode.create({
+        data: { editionId: edition.id, codeHash: createHash('sha256').update(code).digest('hex') },
+      });
+    }
+
+    await this.audit(actor, 'CREATE_EDITION', 'Edition', edition.id, null, { name: dto.name });
+    return { id: edition.id, codes };
+  }
+
+  async setArchived(actor: string, id: string, archived: boolean) {
+    await this.prisma.edition.update({ where: { id }, data: { isArchived: archived } });
+    await this.audit(actor, archived ? 'ARCHIVE_EDITION' : 'UNARCHIVE_EDITION', 'Edition', id);
+    return { ok: true };
+  }
+
+  /** Envoie le rappel J-3 aux bénévoles au planning validé. */
+  async sendReminders(actor: string, editionIdParam?: string) {
+    const editionId = await this.currentEditionId(editionIdParam);
+    const profiles = await this.prisma.volunteerProfile.findMany({
+      where: { editionId, planningStatus: 'VALIDATED' },
+      include: {
+        user: { select: { email: true } },
+        bookings: {
+          include: {
+            missionSlot: { include: { mission: true } },
+            timeSlot: { include: { day: true } },
+          },
+        },
+      },
+    });
+    let sent = 0;
+    for (const p of profiles) {
+      const missions = p.bookings
+        .map((b) => ({
+          day: b.timeSlot.day.label,
+          date: b.timeSlot.day.date,
+          indexInDay: b.timeSlot.indexInDay,
+          startTime: b.timeSlot.startTime,
+          endTime: b.timeSlot.endTime,
+          mission: b.missionSlot.mission.name,
+        }))
+        .sort((a, b) => (a.date === b.date ? a.indexInDay - b.indexInDay : a.date < b.date ? -1 : 1));
+      this.mail.reminder(p.user.email, p.firstName, missions);
+      sent++;
+    }
+    await this.audit(actor, 'SEND_REMINDERS', 'Edition', editionId || '', null, { count: sent });
+    return { sent };
   }
 
   // ---- Journal d'audit ----

@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -16,6 +17,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly mail: MailService,
   ) {}
 
   private hashCode(code: string) {
@@ -43,7 +45,7 @@ export class AuthService {
     const codeHash = this.hashCode(dto.code);
     const passwordHash = await argon2.hash(dto.password);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.user.findUnique({ where: { email } });
       if (existing) {
         throw new ConflictException('Un compte existe déjà avec cet e-mail.');
@@ -60,6 +62,11 @@ export class AuthService {
       }
 
       const invite = await tx.invitationCode.findUnique({ where: { codeHash } });
+
+      const edition = await tx.edition.findUnique({ where: { id: invite!.editionId } });
+      if (edition?.isArchived) {
+        throw new ForbiddenException('Les inscriptions de cette édition sont closes.');
+      }
 
       const user = await tx.user.create({
         data: { email, passwordHash, role: 'VOLUNTEER' },
@@ -82,6 +89,43 @@ export class AuthService {
 
       return { id: user.id, email: user.email, role: user.role };
     });
+
+    // E-mail de confirmation (non bloquant)
+    this.mail.confirmation(result.email, dto.firstName.trim());
+    return result;
+  }
+
+  /** Demande de réinitialisation : envoie un lien signé valable 1 h. */
+  async forgotPassword(emailRaw: string, baseUrl: string) {
+    const email = emailRaw.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { profile: true },
+    });
+    // On répond toujours pareil (anti-énumération de comptes).
+    if (user) {
+      const token = await this.jwt.signAsync(
+        { sub: user.id, typ: 'pwd-reset' },
+        { secret: process.env.JWT_SECRET, expiresIn: '1h' },
+      );
+      const url = `${baseUrl}/reset-password/${token}`;
+      this.mail.passwordReset(email, user.profile?.firstName || 'bénévole', url);
+    }
+    return { ok: true };
+  }
+
+  async resetPassword(token: string, password: string) {
+    let userId: string;
+    try {
+      const payload = await this.jwt.verifyAsync(token, { secret: process.env.JWT_SECRET });
+      if (payload.typ !== 'pwd-reset') throw new Error('type invalide');
+      userId = payload.sub;
+    } catch {
+      throw new UnauthorizedException('Lien invalide ou expiré.');
+    }
+    const passwordHash = await argon2.hash(password);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    return { ok: true };
   }
 
   async login(dto: LoginDto) {
