@@ -66,6 +66,8 @@ export class PlanningService {
     const edition = profile.edition as Edition;
     const windowOpen = this.windowOpen(edition);
     const planningLocked = profile.planningStatus === 'VALIDATED';
+    // Un mineur non validé ne peut pas encore composer son planning.
+    const blocked = profile.isMinor && profile.validationStatus !== 'VALIDATED';
 
     const days = await this.prisma.day.findMany({
       where: { editionId: edition.id },
@@ -154,7 +156,7 @@ export class PlanningService {
               state,
               bookedByMe,
               bookingId: myBookingId,
-              reservable: !bookedByMe && remaining > 0 && rule.ok,
+              reservable: !bookedByMe && remaining > 0 && rule.ok && !blocked,
               reason,
             };
           }),
@@ -170,6 +172,10 @@ export class PlanningService {
       },
       planningStatus: profile.planningStatus,
       myBookingsCount: mine.length,
+      profileBlocked: blocked,
+      blockedReason: blocked
+        ? "Ton profil (mineur) doit être validé par l'organisation avant de choisir tes créneaux."
+        : null,
       days: result,
     };
   }
@@ -180,6 +186,11 @@ export class PlanningService {
     const profile = await this.profileOrThrow(userId);
     const edition = profile.edition as Edition;
 
+    if (profile.isMinor && profile.validationStatus !== 'VALIDATED') {
+      throw new ForbiddenException(
+        "Ton profil doit être validé par l'organisation avant de choisir tes créneaux.",
+      );
+    }
     if (profile.planningStatus === 'VALIDATED') {
       throw new ForbiddenException('Ton planning est validé et verrouillé.');
     }

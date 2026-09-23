@@ -101,6 +101,11 @@ export function PlanningPage() {
       </div>
 
       {flash && <Banner tone="error">{flash}</Banner>}
+      {data.profileBlocked && (
+        <Banner tone="warn">
+          🔒 {data.blockedReason} En attendant, tu peux consulter les créneaux mais pas les réserver.
+        </Banner>
+      )}
       {locked && (
         <Banner tone="success">
           Ton planning est validé et verrouillé. Contacte l'orga pour toute modification.

@@ -70,6 +70,8 @@ export type Availability = {
   edition: { id: string; minSlots: number; maxSlots: number; windowOpen: boolean };
   planningStatus: 'DRAFT' | 'VALIDATED';
   myBookingsCount: number;
+  profileBlocked: boolean;
+  blockedReason: string | null;
   days: {
     id: string;
     label: string;
