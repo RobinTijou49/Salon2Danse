@@ -1,12 +1,10 @@
-import { Controller, Get, Param, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { Query } from '@nestjs/common';
 import { BadgesService } from './badges.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 
 function baseUrlOf(req: Request) {
   const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0] || req.protocol;
@@ -17,14 +15,6 @@ function baseUrlOf(req: Request) {
 @Controller('badges')
 export class BadgesController {
   constructor(private readonly badges: BadgesService) {}
-
-  @Get('me')
-  @ApiCookieAuth()
-  @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Télécharger mon badge PDF' })
-  myBadge(@CurrentUser() user: AuthUser, @Req() req: Request, @Res() res: Response) {
-    return this.badges.renderBadge({ userId: user.sub }, baseUrlOf(req), res);
-  }
 
   @Get('volunteer/:profileId')
   @ApiCookieAuth()
