@@ -191,21 +191,9 @@ Le module de règles est couvert par des **tests unitaires** (`npm test` dans `a
 
 10 tables : `Edition`, `InvitationCode`, `User`, `VolunteerProfile`, `Mission`, `Day`, `TimeSlot`, `MissionSlot`, `Booking`, `AuditLog`.
 
-```mermaid
-erDiagram
-    EDITION           ||--o{ CODE_INVITATION  : "émet"
-    EDITION           ||--o{ MISSION          : "propose"
-    EDITION           ||--|{ JOUR             : "comporte"
-    EDITION           ||--o{ PROFIL_BENEVOLE  : "accueille"
-    UTILISATEUR       ||--o| PROFIL_BENEVOLE  : "possède"
-    CODE_INVITATION   |o--o| PROFIL_BENEVOLE  : "consommé par"
-    JOUR              ||--|{ TRANCHE_HORAIRE  : "découpe"
-    MISSION           ||--o{ CRENEAU          : "ouvre"
-    TRANCHE_HORAIRE   ||--o{ CRENEAU          : "programme"
-    PROFIL_BENEVOLE   ||--o{ RESERVATION      : "réserve"
-    CRENEAU           ||--o{ RESERVATION      : "reçoit"
-    UTILISATEUR       |o--o{ JOURNAL_AUDIT    : "réalise"
-```
+**MCD (Merise)**
+
+![Modèle Conceptuel de Données](docs/mcd.svg)
 
 > `CRENEAU` = `MissionSlot` (mission × tranche, avec capacité) · `RESERVATION` = `Booking`.
 
