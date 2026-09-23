@@ -16,6 +16,7 @@ export function RegisterPage() {
     lastName: '',
     phone: '',
   });
+  const [isMinor, setIsMinor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { setUser } = useAuth();
@@ -45,7 +46,7 @@ export function RegisterPage() {
     setError(null);
     setBusy(true);
     try {
-      const user = await api.register({ code: code.trim(), ...form });
+      const user = await api.register({ code: code.trim(), ...form, isMinor });
       setUser(user);
       await qc.invalidateQueries({ queryKey: ['me'] });
       navigate('/');
@@ -131,6 +132,20 @@ export function RegisterPage() {
                 />
                 <p className="mt-1 text-xs text-muted">8 caractères minimum.</p>
               </div>
+              <label className="flex items-start gap-3 rounded-xl border border-line bg-paper p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isMinor}
+                  onChange={(e) => setIsMinor(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-brand"
+                />
+                <span className="text-ink">
+                  Je suis <b>mineur</b> (moins de 18 ans).
+                  <span className="block text-xs text-muted">
+                    Ton inscription devra être validée par l'organisation (autorisation parentale).
+                  </span>
+                </span>
+              </label>
               <Banner tone="info">
                 📸 Juste après, on te demandera ta photo (obligatoire pour le badge).
               </Banner>

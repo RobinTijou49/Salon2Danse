@@ -112,6 +112,7 @@ export const api = {
     firstName: string;
     lastName: string;
     phone: string;
+    isMinor: boolean;
   }) => req<Me>('/auth/register', { method: 'POST', body: JSON.stringify(dto) }),
   login: (email: string, password: string) =>
     req('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
@@ -228,6 +229,17 @@ export const admin = {
     req<{ tempPassword: string }>('/admin/volunteers/' + id + '/reset-password', { method: 'POST' }),
   removeBooking: (bid: string) => req('/admin/bookings/' + bid, { method: 'DELETE' }),
   audit: () => req<AuditEntry[]>('/admin/audit'),
+  listSlots: (editionId?: string) =>
+    req<SlotRow[]>('/admin/slots' + (editionId ? '?editionId=' + editionId : '')),
+  slotsMeta: (editionId?: string) =>
+    req<{ timeSlots: { id: string; label: string }[]; missions: { id: string; name: string; isPublic: boolean }[] }>(
+      '/admin/slots/meta' + (editionId ? '?editionId=' + editionId : ''),
+    ),
+  createSlot: (missionId: string, timeSlotId: string, capacity: number) =>
+    req('/admin/slots', { method: 'POST', body: JSON.stringify({ missionId, timeSlotId, capacity }) }),
+  updateSlotCapacity: (id: string, capacity: number) =>
+    req('/admin/slots/' + id, { method: 'PATCH', body: JSON.stringify({ capacity }) }),
+  deleteSlot: (id: string) => req('/admin/slots/' + id, { method: 'DELETE' }),
   badgeUrl: (profileId: string) => `${BASE}/badges/volunteer/${profileId}`,
   badgeSheetUrl: (editionId?: string) =>
     `${BASE}/badges/sheet${editionId ? '?editionId=' + editionId : ''}`,
@@ -258,6 +270,19 @@ export const admin = {
     planningCsv: `${BASE}/admin/export/planning.csv`,
     xlsx: `${BASE}/admin/export/salon.xlsx`,
   },
+};
+
+export type SlotRow = {
+  id: string;
+  missionName: string;
+  isPublic: boolean;
+  dayLabel: string;
+  date: string;
+  indexInDay: number;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  booked: number;
 };
 
 export type AdminEdition = {

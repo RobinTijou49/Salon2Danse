@@ -15,6 +15,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminShell } from './admin/AdminShell';
 import { AdminDashboard } from './admin/AdminDashboard';
 import { AdminVolunteers } from './admin/AdminVolunteers';
+import { AdminSlots } from './admin/AdminSlots';
 import { AdminEditions } from './admin/AdminEditions';
 import { AdminAudit } from './admin/AdminAudit';
 
@@ -67,6 +68,7 @@ export default function App() {
       <Route element={<AdminGate />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/volunteers" element={<AdminVolunteers />} />
+        <Route path="/admin/slots" element={<AdminSlots />} />
         <Route path="/admin/editions" element={<AdminEditions />} />
         <Route path="/admin/audit" element={<AdminAudit />} />
       </Route>

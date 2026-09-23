@@ -155,6 +155,110 @@ export class AdminService {
     return { days, missions };
   }
 
+  // ---- CRUD des créneaux réservables (MissionSlot) ----
+  async listSlots(editionIdParam?: string) {
+    const editionId = await this.currentEditionId(editionIdParam);
+    const [slots, counts] = await Promise.all([
+      this.prisma.missionSlot.findMany({
+        where: { mission: { editionId } },
+        include: { mission: true, timeSlot: { include: { day: true } } },
+      }),
+      this.prisma.booking.groupBy({ by: ['missionSlotId'], _count: { _all: true } }),
+    ]);
+    const takenBy = new Map(counts.map((c) => [c.missionSlotId, c._count._all]));
+    return slots
+      .map((s) => ({
+        id: s.id,
+        missionName: s.mission.name,
+        isPublic: s.mission.isPublic,
+        dayLabel: s.timeSlot.day.label,
+        date: s.timeSlot.day.date,
+        indexInDay: s.timeSlot.indexInDay,
+        startTime: s.timeSlot.startTime,
+        endTime: s.timeSlot.endTime,
+        capacity: s.capacity,
+        booked: takenBy.get(s.id) ?? 0,
+      }))
+      .sort((a, b) => {
+        const d = +new Date(a.date) - +new Date(b.date);
+        if (d) return d;
+        if (a.indexInDay !== b.indexInDay) return a.indexInDay - b.indexInDay;
+        return a.missionName.localeCompare(b.missionName);
+      });
+  }
+
+  async slotsMeta(editionIdParam?: string) {
+    const editionId = await this.currentEditionId(editionIdParam);
+    const [timeSlots, missions] = await Promise.all([
+      this.prisma.timeSlot.findMany({ where: { day: { editionId } }, include: { day: true } }),
+      this.prisma.mission.findMany({ where: { editionId }, orderBy: { name: 'asc' } }),
+    ]);
+    const ts = timeSlots
+      .map((t) => ({
+        id: t.id,
+        date: t.day.date,
+        indexInDay: t.indexInDay,
+        label: `${t.day.label} · ${t.startTime}–${t.endTime}`,
+      }))
+      .sort((a, b) => +new Date(a.date) - +new Date(b.date) || a.indexInDay - b.indexInDay)
+      .map(({ id, label }) => ({ id, label }));
+    return {
+      timeSlots: ts,
+      missions: missions.map((m) => ({ id: m.id, name: m.name, isPublic: m.isPublic })),
+    };
+  }
+
+  async updateSlotCapacity(actor: string, slotId: string, capacity: number) {
+    const before = await this.prisma.missionSlot.findUnique({ where: { id: slotId } });
+    if (!before) throw new NotFoundException('Créneau introuvable.');
+    const cap = Math.max(0, Math.floor(capacity));
+    await this.prisma.missionSlot.update({ where: { id: slotId }, data: { capacity: cap } });
+    await this.audit(actor, 'UPDATE_SLOT_CAPACITY', 'MissionSlot', slotId,
+      { capacity: before.capacity }, { capacity: cap });
+    return { ok: true };
+  }
+
+  async createSlot(actor: string, dto: { missionId: string; timeSlotId: string; capacity?: number }) {
+    const mission = await this.prisma.mission.findUnique({ where: { id: dto.missionId } });
+    const ts = await this.prisma.timeSlot.findUnique({
+      where: { id: dto.timeSlotId },
+      include: { day: true },
+    });
+    if (!mission || !ts) throw new NotFoundException('Mission ou créneau horaire introuvable.');
+    if (mission.editionId !== ts.day.editionId) {
+      throw new BadRequestException('Mission et créneau horaire d’éditions différentes.');
+    }
+    try {
+      const created = await this.prisma.missionSlot.create({
+        data: {
+          missionId: dto.missionId,
+          timeSlotId: dto.timeSlotId,
+          capacity: Math.max(0, Math.floor(dto.capacity ?? mission.defaultCapacity)),
+        },
+      });
+      await this.audit(actor, 'CREATE_SLOT', 'MissionSlot', created.id, null, {
+        missionId: dto.missionId,
+        timeSlotId: dto.timeSlotId,
+      });
+      return { id: created.id };
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        throw new ConflictException('Ce créneau existe déjà pour cette mission.');
+      }
+      throw e;
+    }
+  }
+
+  async deleteSlot(actor: string, slotId: string) {
+    const booked = await this.prisma.booking.count({ where: { missionSlotId: slotId } });
+    if (booked > 0) {
+      throw new ConflictException(`Impossible : ${booked} réservation(s) sur ce créneau.`);
+    }
+    await this.prisma.missionSlot.delete({ where: { id: slotId } });
+    await this.audit(actor, 'DELETE_SLOT', 'MissionSlot', slotId);
+    return { ok: true };
+  }
+
   // ---- Recherche bénévoles ----
   async volunteers(q: {
     search?: string;
@@ -163,12 +267,14 @@ export class AdminService {
     dayId?: string;
     missionId?: string;
     editionId?: string;
+    minor?: string;
     page?: number;
   }) {
     const take = 20;
     const page = Math.max(1, Number(q.page) || 1);
     const editionId = await this.currentEditionId(q.editionId);
     const AND: any[] = [{ editionId }];
+    if (q.minor === 'true') AND.push({ isMinor: true });
     if (q.search) {
       AND.push({
         OR: [

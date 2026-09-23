@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, Length, MinLength, Matches } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsEmail, IsOptional, IsString, Length, MinLength, Matches } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: '0485D341' })
@@ -30,4 +30,9 @@ export class RegisterDto {
   @IsString()
   @Matches(/^[0-9+ .()-]{6,20}$/, { message: 'Numéro de téléphone invalide.' })
   phone!: string;
+
+  @ApiPropertyOptional({ example: false, description: 'Le bénévole a moins de 18 ans' })
+  @IsOptional()
+  @IsBoolean()
+  isMinor?: boolean;
 }

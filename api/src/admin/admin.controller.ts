@@ -88,6 +88,40 @@ export class AdminController {
     return this.admin.meta();
   }
 
+  // ---- Créneaux (CRUD) ----
+  @Get('slots')
+  @ApiOperation({ summary: 'Lister les créneaux réservables' })
+  listSlots(@Query('editionId') editionId?: string) {
+    return this.admin.listSlots(editionId);
+  }
+
+  @Get('slots/meta')
+  @ApiOperation({ summary: 'Missions et créneaux horaires (pour créer un créneau)' })
+  slotsMeta(@Query('editionId') editionId?: string) {
+    return this.admin.slotsMeta(editionId);
+  }
+
+  @Post('slots')
+  @ApiOperation({ summary: 'Créer un créneau réservable' })
+  createSlot(
+    @CurrentUser() u: AuthUser,
+    @Body() dto: { missionId: string; timeSlotId: string; capacity?: number },
+  ) {
+    return this.admin.createSlot(u.sub, dto);
+  }
+
+  @Patch('slots/:id')
+  @ApiOperation({ summary: 'Modifier la capacité (jauge) d’un créneau' })
+  updateSlot(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: { capacity: number }) {
+    return this.admin.updateSlotCapacity(u.sub, id, dto.capacity);
+  }
+
+  @Delete('slots/:id')
+  @ApiOperation({ summary: 'Supprimer un créneau (si aucune réservation)' })
+  deleteSlot(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.admin.deleteSlot(u.sub, id);
+  }
+
   @Get('volunteers')
   @ApiOperation({ summary: 'Recherche multi-critères des bénévoles' })
   volunteers(
@@ -97,10 +131,11 @@ export class AdminController {
     @Query('dayId') dayId?: string,
     @Query('missionId') missionId?: string,
     @Query('editionId') editionId?: string,
+    @Query('minor') minor?: string,
     @Query('page') page?: string,
   ) {
     return this.admin.volunteers({
-      search, status, planning, dayId, missionId, editionId, page: Number(page),
+      search, status, planning, dayId, missionId, editionId, minor, page: Number(page),
     });
   }
 

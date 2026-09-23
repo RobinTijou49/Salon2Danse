@@ -11,18 +11,19 @@ export function AdminVolunteers() {
   const [planning, setPlanning] = useState('');
   const [dayId, setDayId] = useState('');
   const [missionId, setMissionId] = useState('');
+  const [minor, setMinor] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
 
   const meta = useQuery({ queryKey: ['admin', 'meta'], queryFn: admin.meta });
-  const params = { search, status, planning, dayId, missionId, editionId, page };
+  const params = { search, status, planning, dayId, missionId, editionId, minor, page };
   const list = useQuery({
     queryKey: ['admin', 'volunteers', params],
     queryFn: () => admin.volunteers(params),
   });
 
   const reset = () => {
-    setSearch(''); setStatus(''); setPlanning(''); setDayId(''); setMissionId(''); setPage(1);
+    setSearch(''); setStatus(''); setPlanning(''); setDayId(''); setMissionId(''); setMinor(''); setPage(1);
   };
 
   return (
@@ -60,6 +61,10 @@ export function AdminVolunteers() {
             {meta.data?.missions.map((m) => (
               <option key={m.id} value={m.id}>{m.name}{m.isPublic ? '' : ' (sensible)'}</option>
             ))}
+          </select>
+          <select className="field" value={minor} onChange={(e) => { setMinor(e.target.value); setPage(1); }}>
+            <option value="">Tous les âges</option>
+            <option value="true">Mineurs uniquement</option>
           </select>
           <button className="btn-ghost" onClick={reset}>Réinitialiser</button>
         </div>

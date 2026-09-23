@@ -79,6 +79,10 @@ export class AuthService {
           firstName: dto.firstName.trim(),
           lastName: dto.lastName.trim(),
           phone: dto.phone.trim(),
+          isMinor: dto.isMinor ?? false,
+          // Un mineur doit être validé par l'organisation (autorisation parentale) ;
+          // un majeur est validé automatiquement.
+          validationStatus: dto.isMinor ? 'PENDING' : 'VALIDATED',
         },
       });
 

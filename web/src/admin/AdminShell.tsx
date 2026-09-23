@@ -33,6 +33,7 @@ export function AdminShell() {
           <nav className="order-3 flex w-full gap-1 md:order-2 md:ml-4 md:w-auto">
             <Link to="/admin" label="Tableau de bord" />
             <Link to="/admin/volunteers" label="Bénévoles" />
+            <Link to="/admin/slots" label="Créneaux" />
             <Link to="/admin/editions" label="Éditions" />
             <Link to="/admin/audit" label="Journal" />
           </nav>
