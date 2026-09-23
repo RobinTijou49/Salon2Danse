@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { admin, ApiError, VolunteerRow } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
@@ -186,8 +187,8 @@ function VolunteerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const unlock = useMutation({ mutationFn: () => admin.unlock(id) });
   const resetPw = useMutation({ mutationFn: () => admin.resetPassword(id) });
 
-  return (
-    <div className="anim-fade fixed inset-0 z-50 flex justify-end bg-ink/40" onClick={onClose}>
+  return createPortal(
+    <div className="anim-fade fixed inset-0 z-[60] flex justify-end bg-ink/40" onClick={onClose}>
       <div className="anim-slide h-full w-full max-w-md overflow-y-auto bg-paper p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-ink">Fiche bénévole</h2>
@@ -255,6 +256,7 @@ function VolunteerDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

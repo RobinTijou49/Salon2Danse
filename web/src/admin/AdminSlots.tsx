@@ -138,38 +138,41 @@ function SlotRowItem({
   const dirty = cap !== s.capacity;
 
   return (
-    <li className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-      <div className="w-28 shrink-0 font-display font-semibold text-ink tabular-nums">
-        {s.startTime}–{s.endTime}
+    <li className="px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-display font-semibold text-ink tabular-nums">
+          {s.startTime}–{s.endTime}
+        </span>
+        <span className="font-medium text-ink">{s.missionName}</span>
+        {!s.isPublic && <span className="text-xs text-warn">sensible</span>}
+        <span className="ml-auto text-xs text-muted tabular-nums">{s.booked} réservé(s)</span>
       </div>
-      <div className="min-w-0 flex-1">
-        <span className="truncate text-ink">{s.missionName}</span>
-        {!s.isPublic && <span className="ml-1 text-xs text-warn">sensible</span>}
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="number"
+          min={0}
+          value={cap}
+          onChange={(e) => setCap(Number(e.target.value))}
+          className="field w-20 py-1.5"
+          title="Capacité"
+          aria-label="Capacité"
+        />
+        <button
+          className="btn-primary px-3 py-1.5 text-xs disabled:opacity-40"
+          disabled={!dirty || save.isPending}
+          onClick={() => save.mutate(cap)}
+        >
+          Enregistrer
+        </button>
+        <button
+          className="ml-auto text-xs font-semibold text-brand hover:underline disabled:opacity-40"
+          onClick={onDelete}
+          disabled={deleting || s.booked > 0}
+          title={s.booked > 0 ? 'Des réservations existent' : 'Supprimer'}
+        >
+          Supprimer
+        </button>
       </div>
-      <span className="shrink-0 text-xs text-muted tabular-nums">{s.booked} réservé(s)</span>
-      <input
-        type="number"
-        min={0}
-        value={cap}
-        onChange={(e) => setCap(Number(e.target.value))}
-        className="field w-20 py-1.5"
-        title="Capacité"
-      />
-      <button
-        className="btn-primary px-3 py-1.5 text-xs disabled:opacity-40"
-        disabled={!dirty || save.isPending}
-        onClick={() => save.mutate(cap)}
-      >
-        Enregistrer
-      </button>
-      <button
-        className="shrink-0 text-xs font-semibold text-brand hover:underline disabled:opacity-40"
-        onClick={onDelete}
-        disabled={deleting || s.booked > 0}
-        title={s.booked > 0 ? 'Des réservations existent' : 'Supprimer'}
-      >
-        Supprimer
-      </button>
     </li>
   );
 }
