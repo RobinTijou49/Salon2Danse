@@ -442,7 +442,11 @@ export class AdminService {
       const code = randomBytes(4).toString('hex').toUpperCase();
       codes.push(code);
       await this.prisma.invitationCode.create({
-        data: { editionId: edition.id, codeHash: createHash('sha256').update(code).digest('hex') },
+        data: {
+          editionId: edition.id,
+          codeHash: createHash('sha256').update(code).digest('hex'),
+          plainCode: code,
+        },
       });
     }
 
@@ -465,11 +469,32 @@ export class AdminService {
       const code = randomBytes(4).toString('hex').toUpperCase();
       codes.push(code);
       await this.prisma.invitationCode.create({
-        data: { editionId, codeHash: createHash('sha256').update(code).digest('hex') },
+        data: {
+          editionId,
+          codeHash: createHash('sha256').update(code).digest('hex'),
+          plainCode: code,
+        },
       });
     }
     await this.audit(actor, 'GENERATE_CODES', 'Edition', editionId, null, { count });
     return { codes };
+  }
+
+  /** Export CSV de tous les codes d'une édition (clair + statut). */
+  async exportCodesCsv(editionId: string, res: Response) {
+    const codes = await this.prisma.invitationCode.findMany({
+      where: { editionId },
+      orderBy: { createdAt: 'asc' },
+    });
+    const lines = ['Code;Statut'];
+    for (const c of codes) {
+      lines.push(
+        [this.csvField(c.plainCode ?? '(généré avant stockage)'), c.status].join(';'),
+      );
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="codes-invitation.csv"');
+    res.end('﻿' + lines.join('\r\n'));
   }
 
   /** Suivi d'utilisation des codes d'une édition. */

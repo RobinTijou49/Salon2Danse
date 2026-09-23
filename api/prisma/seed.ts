@@ -112,7 +112,7 @@ async function main() {
     const code = randomBytes(4).toString('hex').toUpperCase(); // 8 caractères
     if (i < 5) demoCodes.push(code);
     await prisma.invitationCode.create({
-      data: { editionId: edition.id, codeHash: hashCode(code) },
+      data: { editionId: edition.id, codeHash: hashCode(code), plainCode: code },
     });
   }
 

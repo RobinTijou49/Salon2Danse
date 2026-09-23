@@ -70,6 +70,12 @@ export class AdminController {
     return this.admin.codeStats(id);
   }
 
+  @Get('editions/:id/codes/export.csv')
+  @ApiOperation({ summary: "Exporter tous les codes d'une édition (CSV)" })
+  exportCodes(@Param('id') id: string, @Res() res: Response) {
+    return this.admin.exportCodesCsv(id, res);
+  }
+
   @Post('emails/reminders')
   @ApiOperation({ summary: 'Envoyer les rappels J-3 (plannings validés)' })
   reminders(@CurrentUser() u: AuthUser, @Query('editionId') editionId?: string) {

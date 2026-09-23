@@ -159,6 +159,13 @@ function CodesPanel({ editionId, editionName }: { editionId: string; editionName
         </button>
       </div>
 
+      <a
+        href={admin.codesExportUrl(editionId)}
+        className="btn-ghost mt-2 flex w-full items-center justify-center py-1.5 text-xs"
+      >
+        ⬇ Télécharger tous les codes (CSV)
+      </a>
+
       {codes && (
         <div className="mt-3 rounded-lg bg-warnbg p-2.5">
           <p className="text-[11px] font-semibold text-warn">

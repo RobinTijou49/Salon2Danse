@@ -248,6 +248,7 @@ export const admin = {
     req<{ available: number; consumed: number; revoked: number; total: number }>(
       `/admin/editions/${id}/codes/stats`,
     ),
+  codesExportUrl: (id: string) => `${BASE}/admin/editions/${id}/codes/export.csv`,
   sendReminders: (editionId?: string) =>
     req<{ sent: number }>('/admin/emails/reminders' + (editionId ? '?editionId=' + editionId : ''), {
       method: 'POST',
