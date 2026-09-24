@@ -164,8 +164,9 @@ export class BadgesService {
           orderBy: [{ isArchived: 'asc' }, { startDate: 'desc' }],
         })
       )?.id;
+    // Seuls les bénévoles au planning validé ont un badge.
     const profiles = await this.prisma.volunteerProfile.findMany({
-      where: { editionId },
+      where: { editionId, planningStatus: 'VALIDATED' },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
 
@@ -183,7 +184,7 @@ export class BadgesService {
     const my = (841.89 - rows * H) / (rows + 1);
 
     if (profiles.length === 0) {
-      doc.fontSize(14).fillColor(MUTED).text('Aucun bénévole pour cette édition.', 0, 400, {
+      doc.fontSize(14).fillColor(MUTED).text('Aucun bénévole au planning validé pour cette édition.', 0, 400, {
         width: 595,
         align: 'center',
       });

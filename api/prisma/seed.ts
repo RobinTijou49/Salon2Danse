@@ -106,15 +106,8 @@ async function main() {
   }
   console.log(`${missions.length} missions publiques × ${allTimeSlots.length} créneaux = ${missions.length * allTimeSlots.length} créneaux réservables`);
 
-  // --- Codes d'invitation ---
-  const demoCodes: string[] = [];
-  for (let i = 0; i < 130; i++) {
-    const code = randomBytes(4).toString('hex').toUpperCase(); // 8 caractères
-    if (i < 5) demoCodes.push(code);
-    await prisma.invitationCode.create({
-      data: { editionId: edition.id, codeHash: hashCode(code), plainCode: code },
-    });
-  }
+  // Les codes d'invitation sont désormais nominatifs : chaque bénévole est
+  // créé via son code (consommé), et quelques codes de test restent disponibles.
 
   // --- Admins ---
   const adminPass = await argon2.hash('Admin2027!');
@@ -164,6 +157,20 @@ async function main() {
     });
     if (willValidate) validatedCount++;
 
+    // Ce compte a été créé via un code d'invitation nominatif (désormais consommé).
+    const code = randomBytes(4).toString('hex').toUpperCase();
+    await prisma.invitationCode.create({
+      data: {
+        editionId: edition.id,
+        email: user.email,
+        codeHash: hashCode(code),
+        plainCode: code,
+        status: 'CONSUMED',
+        consumedById: profile.id,
+        consumedAt: new Date(),
+      },
+    });
+
     // 1 à 3 créneaux sur des tranches horaires distinctes (respecte la contrainte)
     const nbSlots = 1 + Math.floor(Math.random() * 3);
     const shuffled = [...allTimeSlots].sort(() => Math.random() - 0.5).slice(0, nbSlots);
@@ -183,11 +190,23 @@ async function main() {
     }
   }
 
+  // --- Codes de test disponibles (pour tester l'inscription) ---
+  const demoCodes: { email: string; code: string }[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const email = `nouveau.benevole${i}@example.com`;
+    const code = randomBytes(4).toString('hex').toUpperCase();
+    demoCodes.push({ email, code });
+    await prisma.invitationCode.create({
+      data: { editionId: edition.id, email, codeHash: hashCode(code), plainCode: code },
+    });
+  }
+
   console.log('\n===== DONNÉES DE DÉMO =====');
   console.log('Admins   :  admin@salon-danse.fr  /  Admin2027!');
   console.log('Bénévoles:  <prenom.nom.N@example.com>  /  Benevole2027!');
-  console.log('40 bénévoles créés, dont', validatedCount, 'planning validé.');
-  console.log('5 codes d\'invitation de démo :', demoCodes.join('  '));
+  console.log('40 bénévoles créés (via code d\'invitation consommé), dont', validatedCount, 'planning validé.');
+  console.log('Codes d\'invitation de test disponibles (email -> code) :');
+  for (const d of demoCodes) console.log('  ', d.email, '->', d.code);
   console.log('===========================\n');
 }
 
