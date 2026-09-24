@@ -104,7 +104,7 @@ export type MyPlanning = {
 
 export const api = {
   verifyInvite: (code: string) =>
-    req<{ valid: boolean; editionId: string | null }>('/auth/verify-invite', {
+    req<{ valid: boolean; editionId: string | null; email: string | null }>('/auth/verify-invite', {
       method: 'POST',
       body: JSON.stringify({ code }),
     }),
@@ -278,6 +278,38 @@ export const admin = {
       method: 'POST',
       body: JSON.stringify({ count }),
     }),
+  invite: (id: string, email: string) =>
+    req<{ email: string; status: string; code: string | null }>(`/admin/editions/${id}/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  inviteCsv: async (id: string, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const send = () =>
+      fetch(`${BASE}/admin/editions/${id}/invite-csv`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+    let res = await send();
+    if (res.status === 401) {
+      const r = await fetch(BASE + '/auth/refresh', { method: 'POST', credentials: 'include' });
+      if (r.ok) res = await send();
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = Array.isArray(data?.message) ? data.message.join(' · ') : data?.message;
+      throw new ApiError(res.status, msg || 'Import impossible.');
+    }
+    return data as {
+      total: number;
+      created: number;
+      existing: number;
+      used: number;
+      results: { email: string; status: string; code: string | null }[];
+    };
+  },
   codeStats: (id: string) =>
     req<{ available: number; consumed: number; revoked: number; total: number }>(
       `/admin/editions/${id}/codes/stats`,

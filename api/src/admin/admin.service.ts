@@ -605,15 +605,86 @@ export class AdminService {
       where: { editionId },
       orderBy: { createdAt: 'asc' },
     });
-    const lines = ['Code;Statut'];
+    const lines = ['Email;Code;Statut'];
     for (const c of codes) {
       lines.push(
-        [this.csvField(c.plainCode ?? '(généré avant stockage)'), c.status].join(';'),
+        [
+          this.csvField(c.email ?? ''),
+          this.csvField(c.plainCode ?? '(généré avant stockage)'),
+          c.status,
+        ].join(';'),
       );
     }
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="codes-invitation.csv"');
     res.end('﻿' + lines.join('\r\n'));
+  }
+
+  /** Crée (ou réutilise) un code nominatif lié à un e-mail. */
+  private async inviteOne(editionId: string, emailRaw: string) {
+    const email = emailRaw.trim().toLowerCase();
+    const existing = await this.prisma.invitationCode.findFirst({ where: { editionId, email } });
+    if (existing?.status === 'CONSUMED') {
+      return { email, status: 'used' as const, code: null as string | null };
+    }
+    if (existing?.status === 'AVAILABLE' && existing.plainCode) {
+      return { email, status: 'existing' as const, code: existing.plainCode };
+    }
+    const code = randomBytes(4).toString('hex').toUpperCase();
+    await this.prisma.invitationCode.create({
+      data: {
+        editionId,
+        email,
+        codeHash: createHash('sha256').update(code).digest('hex'),
+        plainCode: code,
+      },
+    });
+    return { email, status: 'created' as const, code };
+  }
+
+  /** Invite un bénévole par e-mail : génère son code et le lui envoie. */
+  async inviteByEmail(actor: string, editionId: string, email: string, baseUrl: string) {
+    const edition = await this.prisma.edition.findUnique({ where: { id: editionId } });
+    const r = await this.inviteOne(editionId, email);
+    if (r.code) this.mail.invitation(r.email, r.code, edition?.name ?? 'Salon de la Danse', baseUrl);
+    await this.audit(actor, 'INVITE_EMAIL', 'Edition', editionId, null, {
+      email: r.email,
+      status: r.status,
+    });
+    return r;
+  }
+
+  /** Import CSV : un code par e-mail trouvé, chacun envoyé par mail. */
+  async inviteByCsv(actor: string, editionId: string, buffer: Buffer, baseUrl: string) {
+    const edition = await this.prisma.edition.findUnique({ where: { id: editionId } });
+    const text = buffer.toString('utf-8');
+    const seen = new Set<string>();
+    const emails: string[] = [];
+    for (const line of text.split(/\r?\n/)) {
+      const cells = line.split(/[,;\t]/).map((c) => c.trim().replace(/^"|"$/g, ''));
+      const found = cells.find((c) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c));
+      if (found) {
+        const e = found.toLowerCase();
+        if (!seen.has(e)) {
+          seen.add(e);
+          emails.push(e);
+        }
+      }
+    }
+    const results: { email: string; status: string; code: string | null }[] = [];
+    for (const email of emails) {
+      const r = await this.inviteOne(editionId, email);
+      if (r.code) this.mail.invitation(r.email, r.code, edition?.name ?? 'Salon de la Danse', baseUrl);
+      results.push(r);
+    }
+    await this.audit(actor, 'INVITE_CSV', 'Edition', editionId, null, { count: results.length });
+    return {
+      total: results.length,
+      created: results.filter((r) => r.status === 'created').length,
+      existing: results.filter((r) => r.status === 'existing').length,
+      used: results.filter((r) => r.status === 'used').length,
+      results,
+    };
   }
 
   /** Suivi d'utilisation des codes d'une édition. */

@@ -68,6 +68,7 @@ model InvitationCode {
   editionId    String
   codeHash     String            @unique
   plainCode    String? // conservé pour ré-export admin (accès BDD à protéger)
+  email        String? // bénévole destinataire (code nominatif)
   status       InvitationStatus  @default(AVAILABLE)
   consumedBy   VolunteerProfile? @relation(fields: [consumedById], references: [id])
   consumedById String?           @unique

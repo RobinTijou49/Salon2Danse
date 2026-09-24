@@ -20,6 +20,7 @@ export function RegisterPage() {
   const [code, setCode] = useState('');
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '' });
   const [isMinor, setIsMinor] = useState(false);
+  const [lockedEmail, setLockedEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { setUser } = useAuth();
@@ -31,8 +32,12 @@ export function RegisterPage() {
     setError(null);
     setBusy(true);
     try {
-      const { valid } = await api.verifyInvite(code.trim());
-      if (!valid) return setError("Ce code d'invitation est invalide ou déjà utilisé.");
+      const r = await api.verifyInvite(code.trim());
+      if (!r.valid) return setError("Ce code d'invitation est invalide ou déjà utilisé.");
+      if (r.email) {
+        setForm((f) => ({ ...f, email: r.email! }));
+        setLockedEmail(r.email);
+      }
       setStep('form');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Vérification impossible.');
@@ -129,7 +134,19 @@ export function RegisterPage() {
               </div>
               <div>
                 <label className="label">E-mail</label>
-                <input className="field" type="email" value={form.email} onChange={set('email')} required />
+                <input
+                  className="field"
+                  type="email"
+                  value={form.email}
+                  onChange={set('email')}
+                  readOnly={!!lockedEmail}
+                  required
+                />
+                {lockedEmail && (
+                  <p className="mt-1 text-xs text-muted">
+                    Adresse liée à ton code d'invitation (non modifiable).
+                  </p>
+                )}
               </div>
               <div>
                 <label className="label">Téléphone mobile</label>

@@ -31,7 +31,11 @@ export class AuthService {
       where: { codeHash: this.hashCode(code) },
     });
     const valid = !!invite && invite.status === 'AVAILABLE';
-    return { valid, editionId: valid ? invite!.editionId : null };
+    return {
+      valid,
+      editionId: valid ? invite!.editionId : null,
+      email: valid ? invite!.email ?? null : null,
+    };
   }
 
   /**
@@ -66,6 +70,12 @@ export class AuthService {
       const edition = await tx.edition.findUnique({ where: { id: invite!.editionId } });
       if (edition?.isArchived) {
         throw new ForbiddenException('Les inscriptions de cette édition sont closes.');
+      }
+      // Code nominatif : il doit être utilisé avec l'adresse à laquelle il a été émis.
+      if (invite!.email && invite!.email !== email) {
+        throw new ForbiddenException(
+          "Ce code d'invitation est réservé à une autre adresse e-mail.",
+        );
       }
 
       const user = await tx.user.create({

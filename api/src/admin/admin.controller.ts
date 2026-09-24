@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,11 +8,20 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiCookieAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request, Response } from 'express';
+
+function baseUrlOf(req: Request) {
+  const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0] || req.protocol;
+  return `${proto}://${req.get('host')}`;
+}
 import { AdminService } from './admin.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -68,6 +78,32 @@ export class AdminController {
   @ApiOperation({ summary: "Suivi d'utilisation des codes d'une édition" })
   codeStats(@Param('id') id: string) {
     return this.admin.codeStats(id);
+  }
+
+  @Post('editions/:id/invite')
+  @ApiOperation({ summary: 'Inviter un bénévole par e-mail (code nominatif + envoi)' })
+  invite(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: { email: string },
+    @Req() req: Request,
+  ) {
+    if (!dto?.email) throw new BadRequestException('E-mail requis.');
+    return this.admin.inviteByEmail(u.sub, id, dto.email, baseUrlOf(req));
+  }
+
+  @Post('editions/:id/invite-csv')
+  @ApiOperation({ summary: 'Importer un CSV de bénévoles (un code + mail par e-mail)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
+  inviteCsv(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu.');
+    return this.admin.inviteByCsv(u.sub, id, file.buffer, baseUrlOf(req));
   }
 
   @Get('editions/:id/codes/export.csv')

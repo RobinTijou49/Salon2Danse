@@ -94,6 +94,21 @@ export class MailService {
     );
   }
 
+  invitation(to: string, code: string, editionName: string, baseUrl: string) {
+    void this.send(
+      to,
+      "Ton code d'invitation bénévole 🎟️",
+      this.layout(
+        'Bonjour,',
+        `<p>Tu es invité(e) à rejoindre l'équipe bénévole du <b>${editionName}</b>.</p>
+         <p>Crée ton compte avec ce code d'invitation :</p>
+         <p style="font-size:22px;font-weight:800;letter-spacing:4px;color:${BRAND};text-align:center;background:#F6E9E5;border-radius:10px;padding:14px;margin:16px 0">${code}</p>
+         <p style="margin:18px 0"><a href="${baseUrl}/register" style="background:${BRAND};color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">Créer mon compte</a></p>
+         <p style="color:#6B6560;font-size:13px">Ce code est personnel : utilise-le avec cette adresse e-mail.</p>`,
+      ),
+    );
+  }
+
   passwordReset(to: string, firstName: string, url: string) {
     void this.send(
       to,

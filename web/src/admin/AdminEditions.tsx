@@ -1,18 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { admin } from '../lib/api';
+import { admin, ApiError } from '../lib/api';
 import { Spinner, Banner } from '../components/ui';
-
-function downloadCodes(editionName: string, codes: string[]) {
-  const csv = '﻿Code\r\n' + codes.join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `codes-${editionName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export function AdminEditions() {
   const qc = useQueryClient();
@@ -111,77 +100,107 @@ export function AdminEditions() {
   );
 }
 
-function CodesPanel({ editionId, editionName }: { editionId: string; editionName: string }) {
+function CodesPanel({ editionId }: { editionId: string; editionName: string }) {
   const qc = useQueryClient();
   const stats = useQuery({
     queryKey: ['admin', 'codeStats', editionId],
     queryFn: () => admin.codeStats(editionId),
   });
-  const [count, setCount] = useState(10);
-  const [codes, setCodes] = useState<string[] | null>(null);
+  const [email, setEmail] = useState('');
+  const [msg, setMsg] = useState<string | null>(null);
+  const [csvSummary, setCsvSummary] = useState<string | null>(null);
 
-  const gen = useMutation({
-    mutationFn: () => admin.generateCodes(editionId, count),
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin', 'codeStats', editionId] });
+    qc.invalidateQueries({ queryKey: ['admin', 'editions'] });
+  };
+
+  const invite = useMutation({
+    mutationFn: () => admin.invite(editionId, email),
     onSuccess: (r) => {
-      setCodes(r.codes);
-      qc.invalidateQueries({ queryKey: ['admin', 'codeStats', editionId] });
-      qc.invalidateQueries({ queryKey: ['admin', 'editions'] });
+      setMsg(
+        r.status === 'used'
+          ? `${r.email} a déjà utilisé un code (déjà inscrit).`
+          : r.status === 'existing'
+            ? `Un code existait déjà pour ${r.email} — e-mail renvoyé.`
+            : `Code créé et envoyé à ${r.email}.`,
+      );
+      setEmail('');
+      refresh();
     },
+    onError: (e) => setMsg(e instanceof ApiError ? e.message : 'Envoi impossible.'),
+  });
+
+  const csv = useMutation({
+    mutationFn: (file: File) => admin.inviteCsv(editionId, file),
+    onSuccess: (r) => {
+      setCsvSummary(
+        `${r.total} adresse(s) traitée(s) : ${r.created} code(s) envoyé(s), ${r.existing} déjà invité(s), ${r.used} déjà inscrit(s).`,
+      );
+      refresh();
+    },
+    onError: (e) => setCsvSummary(e instanceof ApiError ? e.message : 'Import impossible.'),
   });
 
   return (
     <div className="mt-4 border-t border-line pt-3">
       <div className="flex items-center justify-between text-xs text-muted">
-        <span>Codes d'invitation</span>
+        <span>Invitations</span>
         {stats.data && (
           <span className="tabular-nums">
-            <b className="text-ok">{stats.data.available}</b> libres ·{' '}
-            {stats.data.consumed} utilisés
+            <b className="text-warn">{stats.data.available}</b> en attente ·{' '}
+            {stats.data.consumed} inscrits
           </span>
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
+      {/* Inviter un bénévole par e-mail */}
+      <form
+        className="mt-2 flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (email) invite.mutate();
+        }}
+      >
         <input
-          type="number"
-          min={1}
-          max={500}
-          value={count}
-          onChange={(e) => setCount(Number(e.target.value))}
-          className="field w-20 py-1.5 text-sm"
+          type="email"
+          className="field flex-1 py-1.5 text-sm"
+          placeholder="email@benevole.fr"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
         />
-        <button
-          className="btn-primary flex-1 py-1.5 text-sm"
-          disabled={gen.isPending}
-          onClick={() => gen.mutate()}
-        >
-          {gen.isPending ? '…' : 'Générer'}
+        <button className="btn-primary py-1.5 text-sm" disabled={invite.isPending}>
+          {invite.isPending ? '…' : 'Inviter'}
         </button>
-      </div>
+      </form>
+      {msg && <p className="mt-2 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs text-brand">{msg}</p>}
+
+      {/* Import CSV */}
+      <label className="btn-ghost mt-2 flex w-full cursor-pointer items-center justify-center py-1.5 text-xs">
+        {csv.isPending ? 'Import en cours…' : '⬆ Importer un CSV de bénévoles'}
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          disabled={csv.isPending}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) csv.mutate(f);
+            e.target.value = '';
+          }}
+        />
+      </label>
+      {csvSummary && (
+        <p className="mt-2 rounded-lg bg-okbg px-2.5 py-1.5 text-xs text-ok">{csvSummary}</p>
+      )}
 
       <a
         href={admin.codesExportUrl(editionId)}
         className="btn-ghost mt-2 flex w-full items-center justify-center py-1.5 text-xs"
       >
-        ⬇ Télécharger tous les codes (CSV)
+        ⬇ Exporter la liste (e-mails + codes)
       </a>
-
-      {codes && (
-        <div className="mt-3 rounded-lg bg-warnbg p-2.5">
-          <p className="text-[11px] font-semibold text-warn">
-            {codes.length} codes — visibles une seule fois, exporte-les maintenant.
-          </p>
-          <p className="mt-1 max-h-24 overflow-y-auto break-all font-mono text-[11px] text-ink">
-            {codes.join('  ·  ')}
-          </p>
-          <button
-            className="btn-ghost mt-2 w-full py-1.5 text-xs"
-            onClick={() => downloadCodes(editionName, codes)}
-          >
-            ⬇ Télécharger en CSV
-          </button>
-        </div>
-      )}
     </div>
   );
 }
