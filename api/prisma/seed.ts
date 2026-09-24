@@ -7,6 +7,8 @@ import { PrismaClient } from '@prisma/client';
 import type { Mission, TimeSlot, MissionSlot } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'crypto';
+import sharp from 'sharp';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const prisma = new PrismaClient();
 
@@ -190,6 +192,75 @@ async function main() {
     }
   }
 
+  // --- Compte bénévole de démo (accès complet : photo + planning validé) ---
+  const demoEmail = 'benevole@salon-danse.fr';
+  const demoUser = await prisma.user.create({
+    data: { email: demoEmail, passwordHash: volunteerPass, role: 'VOLUNTEER' },
+  });
+  const demoKey = 'profiles/demo-benevole.jpg';
+  const demoProfile = await prisma.volunteerProfile.create({
+    data: {
+      userId: demoUser.id,
+      editionId: edition.id,
+      firstName: 'Camille',
+      lastName: 'Démo',
+      phone: '0600000000',
+      isMinor: false,
+      validationStatus: 'VALIDATED',
+      planningStatus: 'VALIDATED',
+      planningValidatedAt: new Date(),
+      photoKey: demoKey,
+    },
+  });
+  const demoVolCode = randomBytes(4).toString('hex').toUpperCase();
+  await prisma.invitationCode.create({
+    data: {
+      editionId: edition.id,
+      email: demoEmail,
+      codeHash: hashCode(demoVolCode),
+      plainCode: demoVolCode,
+      status: 'CONSUMED',
+      consumedById: demoProfile.id,
+      consumedAt: new Date(),
+    },
+  });
+  for (const ts of [...allTimeSlots].sort(() => Math.random() - 0.5).slice(0, 2)) {
+    const candidates = (slotsByTime.get(ts.id) ?? []).filter((ms) => (capacityLeft.get(ms.id) ?? 0) > 0);
+    if (!candidates.length) continue;
+    const ms = pick(candidates);
+    await prisma.booking.create({
+      data: { volunteerProfileId: demoProfile.id, missionSlotId: ms.id, timeSlotId: ts.id, status: 'VALIDATED' },
+    });
+    capacityLeft.set(ms.id, (capacityLeft.get(ms.id) ?? 1) - 1);
+  }
+  // Photo de démo (best-effort : nécessite MinIO joignable)
+  try {
+    const s3 = new S3Client({
+      endpoint: process.env.S3_ENDPOINT,
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY || '',
+        secretAccessKey: process.env.S3_SECRET_KEY || '',
+      },
+      forcePathStyle: true,
+    });
+    const img = await sharp({
+      create: { width: 600, height: 600, channels: 3, background: { r: 122, g: 41, b: 30 } },
+    })
+      .jpeg()
+      .toBuffer();
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET || 'photos',
+        Key: demoKey,
+        Body: img,
+        ContentType: 'image/jpeg',
+      }),
+    );
+  } catch (e) {
+    console.warn('Photo de démo non uploadée (MinIO injoignable ?) :', (e as Error).message);
+  }
+
   // --- Codes de test disponibles (pour tester l'inscription) ---
   const demoCodes: { email: string; code: string }[] = [];
   for (let i = 1; i <= 5; i++) {
@@ -202,8 +273,8 @@ async function main() {
   }
 
   console.log('\n===== DONNÉES DE DÉMO =====');
-  console.log('Admins   :  admin@salon-danse.fr  /  Admin2027!');
-  console.log('Bénévoles:  <prenom.nom.N@example.com>  /  Benevole2027!');
+  console.log('Admin           :  admin@salon-danse.fr    /  Admin2027!');
+  console.log('Bénévole (démo) :  benevole@salon-danse.fr /  Benevole2027!  (photo + planning validé)');
   console.log('40 bénévoles créés (via code d\'invitation consommé), dont', validatedCount, 'planning validé.');
   console.log('Codes d\'invitation de test disponibles (email -> code) :');
   for (const d of demoCodes) console.log('  ', d.email, '->', d.code);
